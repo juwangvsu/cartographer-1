@@ -23,6 +23,23 @@
 namespace cartographer {
 namespace mapping {
 namespace {
+void hgrid_info(const HybridGrid * hybrid_grid)
+{
+        int ii=0;
+        std::vector<Eigen::Array3i> cell_vec;
+        for (auto it = HybridGrid::Iterator(*hybrid_grid); !it.Done(); it.Next())
+        {
+                const Eigen::Array3i cell_index = it.GetCellIndex();
+                const float iterator_probability = ValueToProbability(it.GetValue());
+                Eigen::Array3f cellcenter = hybrid_grid->GetCenterOfCell(cell_index);
+//    std::cout << "cell center: " << cellcenter[0] << "," << cellcenter[1] << "," <<cellcenter[2]<<"\n";
+//    std::cout<<"cell index: " << cell_index[0] << ", "<<cell_index[1] <<"," <<cell_index[2] << " prob: " << iterator_probability<<"\n";
+                cell_vec.push_back(cell_index);
+                ii++;
+        }
+        std::cout<<"hgrid_info: HybridGrid #points: " <<ii<<"\n";
+
+}
 
 void InsertMissesIntoGrid(const std::vector<uint16>& miss_table,
                           const Eigen::Vector3f& origin,
@@ -30,6 +47,11 @@ void InsertMissesIntoGrid(const std::vector<uint16>& miss_table,
                           HybridGrid* hybrid_grid,
                           const int num_free_space_voxels) {
   const Eigen::Array3i origin_cell = hybrid_grid->GetCellIndex(origin);
+  //jwang debug
+  // this cause additional points in the submap. if skip, the submap 
+  // is almost same as the input scan at the first submap version.
+  //return;
+
   for (const sensor::RangefinderPoint& hit : returns) {
     const Eigen::Array3i hit_cell = hybrid_grid->GetCellIndex(hit.position);
 
@@ -101,11 +123,12 @@ void RangeDataInserter3D::Insert(
     const Eigen::Array3i hit_cell = hybrid_grid->GetCellIndex(hit.position);
     hybrid_grid->ApplyLookupTable(hit_cell, hit_table_);
   }
-
+  hgrid_info(hybrid_grid);
   // By not starting a new update after hits are inserted, we give hits priority
   // (i.e. no hits will be ignored because of a miss in the same cell).
   InsertMissesIntoGrid(miss_table_, range_data.origin, range_data.returns,
                        hybrid_grid, options_.num_free_space_voxels());
+  hgrid_info(hybrid_grid);
   if (intensity_hybrid_grid != nullptr) {
     InsertIntensitiesIntoGrid(range_data.returns, intensity_hybrid_grid,
                               options_.intensity_threshold());

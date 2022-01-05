@@ -1,4 +1,8 @@
 ptcount: 10
+dbgpt: 5
+dbgfilename: dbg_pc3.txt
+ptselection: 1
 #pcdfilename: /home/student/Documents/cartographer/test/mavros_realsense_pcd/mapdata_5.pcd
 pcdfilename: /home/student/Documents/cartographer/test/turtlebot3_pcd/mapdata_5.pcd
 #
+tst:2,3,4,8

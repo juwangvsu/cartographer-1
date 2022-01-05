@@ -179,9 +179,19 @@ void MapBuilder::FinishTrajectory(const int trajectory_id) {
   sensor_collator_->FinishTrajectory(trajectory_id);
   pose_graph_->FinishTrajectory(trajectory_id);
 }
-
+extern bool submap_dbgflag; //defined in 3d/submap_3d.cc
 std::string MapBuilder::SubmapToProto(
     const SubmapId& submap_id, proto::SubmapQuery::Response* const response) {
+	/*jwang debug: to turn on/off dbgflag */
+  if (submap_id.submap_index>1000 && submap_id.submap_index<2000){
+	  submap_dbgflag=true;
+	  return "requesting to turn on submap_dbgflag=true done";
+  }
+  if (submap_id.submap_index>2000){
+	  submap_dbgflag=false;
+	  return "requesting to turn off submap_dbgflag=false done";
+  }
+
   if (submap_id.trajectory_id < 0 ||
       submap_id.trajectory_id >= num_trajectory_builders()) {
     return "Requested submap from trajectory " +
@@ -195,6 +205,7 @@ std::string MapBuilder::SubmapToProto(
            " from trajectory " + std::to_string(submap_id.trajectory_id) +
            " but it does not exist: maybe it has been trimmed.";
   }
+  std::cout<<"SubmapToProto ToResponseProto\n";
   submap_data.submap->ToResponseProto(submap_data.pose, response);
   return "";
 }

@@ -27,12 +27,12 @@
 namespace cartographer {
 namespace mapping {
 namespace scan_matching {
-
 // Computes a cost for matching the 'point_cloud' to the 'hybrid_grid' with a
 // 'translation' and 'rotation'. The cost increases when points fall into less
 // occupied space, i.e. at voxels with lower values.
 class OccupiedSpaceCostFunction3D {
  public:
+  inline static int scan_matching_verbose=0;
   static ceres::CostFunction* CreateAutoDiffCostFunction(
       const double scaling_factor, const sensor::PointCloud& point_cloud,
       const mapping::HybridGrid& hybrid_grid) {
@@ -69,12 +69,36 @@ class OccupiedSpaceCostFunction3D {
   template <typename T>
   bool Evaluate(const transform::Rigid3<T>& transform,
                 T* const residual) const {
+	  std::string vtype=typeid(transform).name();
+    if (scan_matching_verbose==1) {
+	  //std::cout<<typeid(transform).name()<<"\n";
+	    // N12cartographer9transform6Rigid3IN5ceres3JetIdLi7EEEEE
+	    // N12cartographer9transform6Rigid3IdEE
+	      if (vtype=="N12cartographer9transform6Rigid3IN5ceres3JetIdLi7EEEEE")
+	      {
+	    	std::cout<<"translation:\n\t" <<transform.translation()[0]<< "\n\t" <<transform.translation()[1]<<  "\n\t" <<transform.translation()[2]<<"\n" ;
+	    	std::cout<<"rotation quat:\n\t" <<transform.rotation().x()<<  "\n\t"<<transform.rotation().y()<<  "\n\t"<<transform.rotation().z()<<  "\n\t"<<transform.rotation().w()<<  "\n" ;
+	      }else{
+	    	std::cout<<"translation: " <<transform.translation()[0]<< " " <<transform.translation()[1]<<  " " <<transform.translation()[2]<<"\n" ;
+	    	std::cout<<"rotation quat: " <<transform.rotation().x()<<  " "<<transform.rotation().y()<<  " "<<transform.rotation().z()<<  " "<<transform.rotation().w()<<  "\n" ;
+	      }
+    }
     for (size_t i = 0; i < point_cloud_.size(); ++i) {
       const Eigen::Matrix<T, 3, 1> world =
           transform * point_cloud_[i].position.cast<T>();
       const T probability =
           interpolated_grid_.GetInterpolatedValue(world[0], world[1], world[2]);
       residual[i] = scaling_factor_ * (1. - probability);
+      if (scan_matching_verbose==1) {
+	      if (vtype=="N12cartographer9transform6Rigid3IN5ceres3JetIdLi7EEEEE")
+	      {
+	    	std::cout<<"world\n" << world[0] << "\n" << world[1] << "\n" << world[2] << "\nprob " << probability << "\n";
+	      }else
+	    	std::cout<<"world " << world[0] << " " << world[1] << " " << world[2] << " prob " << probability << "\n";
+      }
+    }
+    if (scan_matching_verbose==1) {
+	    std::cout<<"scan matching verbose\n" <<  "\n";
     }
     return true;
   }

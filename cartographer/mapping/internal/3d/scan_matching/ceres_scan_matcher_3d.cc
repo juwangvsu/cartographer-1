@@ -94,6 +94,8 @@ void CeresScanMatcher3D::Match(
         point_clouds_and_hybrid_grids,
     transform::Rigid3d* const pose_estimate,
     ceres::Solver::Summary* const summary) const {
+
+  std::cout<<"****************** Match() jwang**********************\n";
   ceres::Problem problem;
   optimization::CeresPose ceres_pose(
       initial_pose_estimate, nullptr /* translation_parameterization */,

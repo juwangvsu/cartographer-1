@@ -26,8 +26,8 @@
 
 namespace cartographer {
 namespace mapping {
+bool submap_dbgflag=false;
 namespace {
-
 struct PixelData {
   int min_z = INT_MAX;
   int max_z = INT_MIN;
@@ -35,6 +35,51 @@ struct PixelData {
   float probability_sum = 0.f;
   float max_probability = 0.5f;
 };
+
+void hgrid_info(const HybridGrid * hgrid, bool dbgflag)
+{
+	int ii=0;
+	int hitcnt=0;
+	int misscnt=0;
+	float max_prob=0.5;
+	float min_prob=0.5;
+	std::vector<Eigen::Array3i> cell_vec;
+	for (auto it = HybridGrid::Iterator(*hgrid); !it.Done(); it.Next()) 
+	{
+    		const Eigen::Array3i cell_index = it.GetCellIndex();
+    		const float iterator_probability = ValueToProbability(it.GetValue());
+     		Eigen::Array3f cellcenter = hgrid->GetCenterOfCell(cell_index);
+//    std::cout << "cell center: " << cellcenter[0] << "," << cellcenter[1] << "," <<cellcenter[2]<<"\n";
+
+		if (dbgflag)
+			std::cout<<"cell index: " << cell_index[0] << ", "<<cell_index[1] <<"," <<cell_index[2] << " prob: " << iterator_probability<<"\n";
+    		cell_vec.push_back(cell_index);
+		if (iterator_probability > max_prob)
+			max_prob = iterator_probability;
+		if (iterator_probability < min_prob)
+			min_prob = iterator_probability;
+
+		if (iterator_probability>0.5)
+			hitcnt++;
+		else
+			misscnt++;
+    		ii++;
+  	}
+	std::cout<<"submap info: HybridGrid #points/hit#/miss#: " <<ii<<" "<<hitcnt<<" "<<misscnt<<" max/min prob: "<< max_prob <<" " <<min_prob<<"\n";
+
+}
+
+void submap_info(std::shared_ptr<const mapping::Submap3D> submap, bool dbgflag)
+{
+	const HybridGrid * hres_hybrid_grid = &submap->high_resolution_hybrid_grid();
+	hgrid_info(hres_hybrid_grid, dbgflag);
+}
+void submap_info2(const Submap3D * submap, bool dbgflag)
+{
+	const HybridGrid * hres_hybrid_grid = &submap->high_resolution_hybrid_grid();
+	hgrid_info(hres_hybrid_grid, dbgflag);
+}
+
 
 // Filters 'range_data', retaining only the returns that have no more than
 // 'max_range' distance from the origin. Removes misses.
@@ -261,7 +306,9 @@ void Submap3D::ToResponseProto(
     const transform::Rigid3d& global_submap_pose,
     proto::SubmapQuery::Response* const response) const {
   response->set_submap_version(num_range_data());
-
+  std::cout<<"submap ToResponseProto:\n";
+  //std::shared_ptr<const cartographer::mapping::Submap3D> thissubmap(this);
+  submap_info2(this, submap_dbgflag);
   AddToTextureProto(*high_resolution_hybrid_grid_, global_submap_pose,
                     response->add_textures());
   AddToTextureProto(*low_resolution_hybrid_grid_, global_submap_pose,
@@ -318,13 +365,20 @@ std::vector<std::shared_ptr<const Submap3D>> ActiveSubmaps3D::InsertData(
               rotational_scan_matcher_histogram_in_gravity.size());
   }
   for (auto& submap : submaps_) {
+	  std::cout<<"insert data: returns/misses.size(): "<<range_data.returns.size()<<" " <<range_data.misses.size()<<"\n";
     submap->InsertData(range_data, range_data_inserter_,
                        options_.high_resolution_max_range(),
                        local_from_gravity_aligned,
                        rotational_scan_matcher_histogram_in_gravity);
   }
+  if (submaps_.size()>0){
+  	submap_info(submaps_.front(), false);
+  }
   if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) {
     submaps_.front()->Finish();
+  }
+  if (submaps_.size()>0){
+  	submap_info(submaps_.front(), false);
   }
   return submaps();
 }
@@ -348,6 +402,10 @@ void ActiveSubmaps3D::AddSubmap(
   submaps_.emplace_back(new Submap3D(
       options_.high_resolution(), options_.low_resolution(), local_submap_pose,
       initial_rotational_scan_matcher_histogram));
+  std::cout<<"AddSubmap submaps_.size(): "<< submaps_.size()<<"\n";
+  if (submaps_.size()>0){
+  	submap_info(submaps_.front(),false);
+  }
 }
 
 }  // namespace mapping
