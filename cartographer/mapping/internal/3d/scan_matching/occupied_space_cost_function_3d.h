@@ -54,7 +54,7 @@ class OccupiedSpaceCostFunction3D {
     return Evaluate(transform, residual);
   }
 
- private:
+ //private:
   OccupiedSpaceCostFunction3D(const double scaling_factor,
                               const sensor::PointCloud& point_cloud,
                               const mapping::HybridGrid& hybrid_grid)
@@ -62,6 +62,7 @@ class OccupiedSpaceCostFunction3D {
         point_cloud_(point_cloud),
         interpolated_grid_(hybrid_grid) {}
 
+ private:
   OccupiedSpaceCostFunction3D(const OccupiedSpaceCostFunction3D&) = delete;
   OccupiedSpaceCostFunction3D& operator=(const OccupiedSpaceCostFunction3D&) =
       delete;

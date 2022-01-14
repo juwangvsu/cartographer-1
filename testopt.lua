@@ -1,5 +1,7 @@
         return {
           occupied_space_weight_0 = 1.,
+          occupied_space_weight_1 = 16.,
+	  
           intensity_cost_function_options_0 = {
             weight = 0.5,
             huber_scale = 55,

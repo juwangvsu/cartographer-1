@@ -33,6 +33,7 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/registration/ndt.h>
 #include <pcl/filters/approximate_voxel_grid.h>
+#include "cartographer/sensor/rangefinder_point.h"
 
 namespace cartographer {
 namespace mapping {
@@ -52,10 +53,15 @@ static auto* kScanMatcherResidualDistanceMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualAngleMetric = metrics::Histogram::Null();
 
 //jwang dbg: dump the submap as pcd files
-void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn);
-void submap_2_pcd(std::shared_ptr<const mapping::Submap3D> submap)
+void submap_info(std::shared_ptr<const mapping::Submap3D> submap, bool dbgflag); ////see submap_3d.cc
+void submap_info2(const Submap3D * submap, bool dbgflag); //see submap_3d.cc
+void hgrid_info(const HybridGrid * hgrid, bool dbgflag); //see submap_3d.cc
+
+void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn, float hitprobthresh);
+void submap_2_pcd(std::shared_ptr<const mapping::Submap3D> submap, float hgrid_pcd_probthresh)
 {
 	std::string pcdfn1, pcdfn2, pcdfn3;
+
 	std::cout<<"\n\nsubmap_2_pcd: " << submap->local_pose();
 	const auto * hres_hybrid_grid = &submap->high_resolution_hybrid_grid();
 	const HybridGrid * lres_hybrid_grid = &submap->low_resolution_hybrid_grid();
@@ -66,10 +72,35 @@ void submap_2_pcd(std::shared_ptr<const mapping::Submap3D> submap)
 	pcdfn2= "/home/student/Documents/cartographer/submap_test_h.pcd";
 	pcdfn3= "/home/student/Documents/cartographer/submap_test_l.pcd";
         pcl::io::loadPCDFile<pcl::PointXYZ> (pcdfn1, *target_cloud);
-	hybridgrid_2_pcd(hres_hybrid_grid, pcdfn2);
-	hybridgrid_2_pcd(lres_hybrid_grid, pcdfn3);
+	hybridgrid_2_pcd(hres_hybrid_grid, pcdfn2, hgrid_pcd_probthresh);
+	hybridgrid_2_pcd(lres_hybrid_grid, pcdfn3, hgrid_pcd_probthresh);
 }
 
+using TimedPointCloud = std::vector<cartographer::sensor::TimedRangefinderPoint>;
+// write timed scan to pcd
+void scan2_2_pcd(const TimedPointCloud t_cloud,std::string pcdfn)
+{
+	//struct RangefinderPoint {
+  //Eigen::Vector3f position;
+//};
+//	TimedPointCloud is std::vector<TimedRangefinderPoint>;
+	std::cout<<"\nscan2_2_pcd #points: "<<t_cloud.size()<<" " <<pcdfn<<"\n";
+	pcl::PointCloud<pcl::PointXYZ>::Ptr scan_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+	scan_cloud->height   = 1;
+	scan_cloud->width   = t_cloud.size();
+	scan_cloud->is_dense = false;
+  	scan_cloud->points.resize (scan_cloud->width * scan_cloud->height);
+	int i=0;
+   	for (auto& point: t_cloud)
+   	{
+		(*scan_cloud)[i].x = point.position[0];
+		(*scan_cloud)[i].y = point.position[1];
+		(*scan_cloud)[i].z = point.position[2];
+		i++;
+   	}
+	pcl::io::savePCDFile<pcl::PointXYZ> (pcdfn, *scan_cloud, false);
+
+}
 /*
  * save a scan (in sensor::PointCloud format to pcd format
  */
@@ -96,10 +127,13 @@ void scan_2_pcd(const sensor::PointCloud h_cloud,std::string pcdfn)
 
 }
 
-/************ save HybridGrid to PCD file
+/************ save HybridGrid to PCD file, hitprobthresh=0.5 to save only hit points.
  * */
-void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn)
+void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn, float hitprobthresh=0.1)
 {
+	std::cout<<"\n***** hybridgrid_2_pcd***************\n"<<"hitprobthresh: "<< hitprobthresh<<"\n";
+	hgrid_info(hybrid_grid,false);
+
 	pcl::PointCloud<pcl::PointXYZ>::Ptr submap_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	submap_cloud->height   = 1;
 	submap_cloud->is_dense = false;
@@ -112,15 +146,15 @@ void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn)
   }
   */
   int ii =0;
-  std::vector<Eigen::Array3i> cell_vec;
+  std::vector<Eigen::Array3f> cell_vec;
   for (auto it = HybridGrid::Iterator(*hybrid_grid); !it.Done(); it.Next()) {
     const Eigen::Array3i cell_index = it.GetCellIndex();
     const float iterator_probability = ValueToProbability(it.GetValue());
-     Eigen::Array3f cellcenter = hybrid_grid->GetCenterOfCell(cell_index);
-//    std::cout << "cell center: " << cellcenter[0] << "," << cellcenter[1] << "," <<cellcenter[2]<<"\n";
+     Eigen::Array3f cell_center = hybrid_grid->GetCenterOfCell(cell_index);
+//    std::cout << "cell center: " << cell_center[0] << "," << cell_center[1] << "," <<cell_center[2]<<"\n";
 //    std::cout<<"cell index: " << cell_index[0] << ", "<<cell_index[1] <<"," <<cell_index[2] << " prob: " << iterator_probability<<"\n";
-    if (iterator_probability>0.5) {
-	    cell_vec.push_back(cell_index);
+    if (iterator_probability>hitprobthresh) {// 0.5 for hit points only
+	    cell_vec.push_back(cell_center);
 	    ii++;
     }
   }
@@ -168,7 +202,7 @@ std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch(
   std::cout<<"***************** LocalTrajectoryBuilder3D::ScanMatch \n";
   std::cout<<"************submap pose: \n"<<matching_submap->local_pose()<<"\n";
   std::cout<<"************initial pose (local frame): \n"<<initial_ceres_pose<<"\n";
-  submap_2_pcd(matching_submap);
+  submap_2_pcd(matching_submap, options_.hgrid_pcd_probthresh());
   std::string scan_cloud_fn1= "/home/student/Documents/cartographer/scan_test_l.pcd";
   std::string scan_cloud_fn2= "/home/student/Documents/cartographer/scan_test_h.pcd";
   scan_2_pcd(low_resolution_point_cloud_in_tracking,scan_cloud_fn1);
@@ -271,6 +305,11 @@ LocalTrajectoryBuilder3D::AddRangeData(
   if (num_accumulated_ == 0) {
     accumulated_point_cloud_origin_data_.clear();
   }
+  //jwang save raw data for comparison before voxel filter, this should
+  //be original resolution:
+
+  std::string pcd_syncdata="/home/student/Documents/cartographer/test/unsync_rangedata.pcd";
+  scan2_2_pcd(unsynchronized_data.ranges, pcd_syncdata);
 
   synchronized_data.ranges = sensor::VoxelFilter(
       synchronized_data.ranges, 0.5f * options_.voxel_filter_size());
@@ -400,6 +439,9 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     return nullptr;
   }
 
+  std::string pcd_filteredrangedata="/home/student/Documents/cartographer/test/filtered_range_data_in_tracking.pcd";
+  scan_2_pcd(filtered_range_data_in_tracking.returns,pcd_filteredrangedata);
+
   const auto scan_matcher_start = std::chrono::steady_clock::now();
 
   const sensor::PointCloud high_resolution_point_cloud_in_tracking =
@@ -444,7 +486,7 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
 
   /*jwang debug start */
   std::cout<<"\n****** insert into submap******\n";
-  std::string pcd_hrt="scan_hrt_"+std::to_string(scan_seq)+".pcd";
+  std::string pcd_hrt="/home/student/Documents/cartographer/test/scan_hrt_"+std::to_string(scan_seq)+".pcd";
   scan_2_pcd(high_resolution_point_cloud_in_tracking,pcd_hrt);
   scan_seq++;
 
@@ -461,14 +503,14 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
       low_resolution_point_cloud_in_tracking, *pose_estimate,
       gravity_alignment);
 
-  /*jwang debug start */
-  std::cout<<"active_submap: "<< &active_submaps_ <<"\n";
+  /*jwang debug start after scanmatch and insertmap
+  std::cout<<"\n\nafter scanmatch and insertmap, active_submap: "<< &active_submaps_ <<"\n";
   std::cout<<"active_submap.submaps.size(): "<< active_submaps_.submaps().size() <<"\n";
   matching_submap =
        active_submaps_.submaps().front();
   submap_2_pcd(matching_submap);
 
-/*jwang debug end */
+jwang debug end */
 
   const auto insert_into_submap_stop = std::chrono::steady_clock::now();
 

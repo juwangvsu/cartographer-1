@@ -76,4 +76,5 @@ message LocalTrajectoryBuilderOptions3D {
 
   // Whether to use Lidar intensities in Ceres Scan Matcher.
   bool use_intensities = 21;
+  float hgrid_pcd_probthresh = 22;
 }

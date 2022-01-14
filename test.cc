@@ -8,6 +8,8 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <string.h>
 #include <vector>
+#include "Eigen/Core"
+#include <Eigen/Geometry>
 using namespace std;
 template<class T> struct Point{
     template <typename NewType> Point<NewType> cast() const{
@@ -18,13 +20,31 @@ struct tt{
 	int x;
 	int y;
 };
-main()
+int main()
 {
+	Eigen::Quaterniond quat(1, 0,0,0);
+
+    std::cout<<"Eigen::Quaterniond: "<< quat.w() <<"\n";
+	Eigen::Matrix3d mat3 = Eigen::Quaterniond(1, 0,0,0).toRotationMatrix();
+    Eigen::Vector3d v3d(-1., 0., 0.);
+    Eigen::Transform<double, 3, Eigen::Affine > pose_transform;
+
+    pose_transform.translation()=v3d;
+    pose_transform.rotate(Eigen::AngleAxis<double>(0.5, Eigen::Vector3d::UnitX()));
+    std::cout<<"Eigen::Transform: rotation"<< pose_transform.rotation() <<"\n";
+    pose_transform.rotate(quat);
+    pose_transform.linear()=mat3; //Eigen::AngleAxis<double>(0.5, Eigen::Vector3d::UnitX());
+    //pose_transform.rotate() =mat3;
+    //pose_transform.block<3,3>(0,0) =mat3;
+    std::cout<<"Eigen::Matrix3f: "<< mat3 <<"\n";
+    std::cout<<"Eigen::Vector3d: "<< v3d <<"\n";
+    std::cout<<"Eigen::Transform: "<< pose_transform.translation() <<"\n";
+    std::cout<<"Eigen::Transform: rotation"<< pose_transform.rotation() <<"\n";
     Point<float> p1;
-    Point<double> p2;
+     Point<double> p2;
     tt t1{1,2};
-    tt t2(1,2);
-    std::cout<<"struct tt: " <<t2.x<<"\n";
+    //tt t2(1,2); bad structure initialization
+    std::cout<<"struct tt: " <<t1.x<<"\n";
     std::vector<int> v = { 7, 5, 16, 8 };
     std::vector<int> intvec1;
     std::cout <<"intvec1.size(): "<< intvec1.size();
@@ -33,7 +53,7 @@ main()
 
     //std::cout<<p1 <<" "<<p2 <<"\n";
     p2 = p1.cast<double>();
-	std::array<int,3> a1{1,2,3};
+	std::array<int,3> a1{{1,2,3}};
 	std::cout<<a1.data()[2];
 	std::cout<<a1.at(2);
 
@@ -76,5 +96,5 @@ token = strtok(const_cast<char*>(myoptstr.c_str()), "\n");
     std::cout<<"\n*****************\ncout mymap:\n";
     for (auto keyval : mymap)
         cout << keyval.first << ":" << keyval.second << endl;
-
+    return 0;
 }

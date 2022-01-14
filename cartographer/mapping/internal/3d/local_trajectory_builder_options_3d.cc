@@ -67,6 +67,7 @@ proto::LocalTrajectoryBuilderOptions3D CreateLocalTrajectoryBuilderOptions3D(
   *options.mutable_submaps_options() = CreateSubmapsOptions3D(
       parameter_dictionary->GetDictionary("submaps").get());
   options.set_use_intensities(parameter_dictionary->GetBool("use_intensities"));
+  options.set_hgrid_pcd_probthresh(parameter_dictionary->GetDouble("hgrid_pcd_probthresh"));
   return options;
 }
 

@@ -1,8 +1,22 @@
 ptcount: 10
 dbgpt: 5
 dbgfilename: dbg_pc3.txt
-ptselection: 1
+ptselection: 2
 #pcdfilename: /home/student/Documents/cartographer/test/mavros_realsense_pcd/mapdata_5.pcd
 pcdfilename: /home/student/Documents/cartographer/test/turtlebot3_pcd/mapdata_5.pcd
-#
+# pcdfilename1 for scan pcd
+pcdfilename1: /home/student/Documents/cartographer/test_ceres_pcd/scan_test_h.pcd
+pcdfilename2: /home/student/Documents/cartographer/test_ceres_pcd/submap_test_h.pcd
+pcdfilename3: /home/student/Documents/cartographer/test_ceres_pcd/scan_test_l.pcd
+pcdfilename4: /home/student/Documents/cartographer/test_ceres_pcd/submap_test_l.pcd
+#usehighres, uselowres, twostep all 1|0 
+usehighres: 1
+uselowres: 0
+twostep: 0
+sweepstep: 0.01
+sweeprange: 1.0
+initpose: 0.65 0.0278726 -0.0228209 1 2.61099e-05 0.000306306 -1.56989e-05
+hgrid_res_h: 0.15
+hgrid_res_l: 0.5
+#initpose format xyz qwqxqyqz 
 tst:2,3,4,8

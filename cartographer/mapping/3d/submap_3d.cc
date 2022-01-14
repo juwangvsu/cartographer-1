@@ -26,15 +26,9 @@
 
 namespace cartographer {
 namespace mapping {
-bool submap_dbgflag=false;
-namespace {
-struct PixelData {
-  int min_z = INT_MAX;
-  int max_z = INT_MIN;
-  int count = 0;
-  float probability_sum = 0.f;
-  float max_probability = 0.5f;
-};
+
+	/***** jwang debug code start ***/
+	bool submap_dbgflag=false;
 
 void hgrid_info(const HybridGrid * hgrid, bool dbgflag)
 {
@@ -79,6 +73,17 @@ void submap_info2(const Submap3D * submap, bool dbgflag)
 	const HybridGrid * hres_hybrid_grid = &submap->high_resolution_hybrid_grid();
 	hgrid_info(hres_hybrid_grid, dbgflag);
 }
+
+	/***** jwang debug code end ***/
+
+namespace {
+struct PixelData {
+  int min_z = INT_MAX;
+  int max_z = INT_MIN;
+  int count = 0;
+  float probability_sum = 0.f;
+  float max_probability = 0.5f;
+};
 
 
 // Filters 'range_data', retaining only the returns that have no more than

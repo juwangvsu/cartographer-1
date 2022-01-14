@@ -95,7 +95,8 @@ void CeresScanMatcher3D::Match(
     transform::Rigid3d* const pose_estimate,
     ceres::Solver::Summary* const summary) const {
 
-  std::cout<<"****************** Match() jwang**********************\n";
+  std::cout<<"\n****************** Match() jwang**********************\n";
+  std::cout<<"************initial pose (local frame): \n"<<initial_pose_estimate<<"\n";
   ceres::Problem problem;
   optimization::CeresPose ceres_pose(
       initial_pose_estimate, nullptr /* translation_parameterization */,
