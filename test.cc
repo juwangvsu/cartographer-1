@@ -22,7 +22,28 @@ struct tt{
 };
 int main()
 {
+	Eigen::Quaterniond quat0(1, 2,0,0);
+	std::cout<<"quat0: " <<quat0.w()<<" "<<quat0.x()<<" "<<quat0.y()<<" "<<quat0.z()<<"\n";
+	Eigen::Matrix3d mat0 = quat0.toRotationMatrix();
+	std::cout<<"mat0 (from quat0): \n" <<mat0 <<"\n";
+	Eigen::Quaterniond quat1=quat0.conjugate();
+	std::cout<<"quat0 conjugate: " <<quat1.w()<<" "<<quat1.x()<<" "<<quat1.y()<<" "<<quat1.z()<<"\n";
+	std::cout<<"quat0: " <<quat0.w()<<" "<<quat0.x()<<" "<<quat0.y()<<" "<<quat0.z()<<"\n";
+	quat0.normalize();
+	std::cout<<"quat0: " <<quat0.w()<<" "<<quat0.x()<<" "<<quat0.y()<<" "<<quat0.z()<<"\n";
+	Eigen::Matrix3d mat1 = quat0.toRotationMatrix();
+	std::cout<<"mat1 (quat0 normalized): \n" <<mat1 <<"\n";
 	Eigen::Quaterniond quat(1, 0,0,0);
+	std::string ss0;
+	std::ofstream outFile("/home/student//Documents/cartographer/test_ceres_pcd/sweep4.txt");
+	std::ostringstream ssout("~/Documents/cartographer/test_ceres_pcd/sweep4.txt");
+	ssout<<"hello"<<2;
+	ssout.str("");//reset
+	ssout<<"newhello"<<2;
+	outFile<<"hello"<<3<<"hello";
+	outFile<<ssout.str();
+	outFile<<1<<","<<2;
+	std::cout<<ssout.str();
 
     std::cout<<"Eigen::Quaterniond: "<< quat.w() <<"\n";
 	Eigen::Matrix3d mat3 = Eigen::Quaterniond(1, 0,0,0).toRotationMatrix();

@@ -38,6 +38,8 @@
 namespace cartographer {
 namespace mapping {
 
+int scan_seq=0;
+int savepcdflag=0;
 // TODO(spielawa): Adjust metrics for multi-trajectory. So far we assume a
 // single trajectory.
 static auto* kLocalSlamLatencyMetric = metrics::Gauge::Null();
@@ -58,9 +60,20 @@ void submap_info2(const Submap3D * submap, bool dbgflag); //see submap_3d.cc
 void hgrid_info(const HybridGrid * hgrid, bool dbgflag); //see submap_3d.cc
 
 void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn, float hitprobthresh);
+int64_t cartotime_2_ns(common::Time time)
+{
+  int64_t uts_timestamp = ::cartographer::common::ToUniversal(time);
+  int64_t ns_since_unix_epoch =
+      (uts_timestamp -
+       ::cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds *
+           10000000ll) *
+      100ll;
+  return ns_since_unix_epoch;
+}
 void submap_2_pcd(std::shared_ptr<const mapping::Submap3D> submap, float hgrid_pcd_probthresh)
 {
 	std::string pcdfn1, pcdfn2, pcdfn3;
+	if (savepcdflag==0) return;
 
 	std::cout<<"\n\nsubmap_2_pcd: " << submap->local_pose();
 	const auto * hres_hybrid_grid = &submap->high_resolution_hybrid_grid();
@@ -69,8 +82,10 @@ void submap_2_pcd(std::shared_ptr<const mapping::Submap3D> submap, float hgrid_p
 	pcl::PointCloud<pcl::PointXYZ>::Ptr submap_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
 	pcdfn1= "/home/student/Documents/AirSim/ros/src/hdl_graph_slam/mapdata_13.pcd";
-	pcdfn2= "/home/student/Documents/cartographer/submap_test_h.pcd";
-	pcdfn3= "/home/student/Documents/cartographer/submap_test_l.pcd";
+	pcdfn2="/home/student/Documents/cartographer/test/submap_test_h_"+std::to_string(scan_seq)+".pcd";
+	pcdfn3="/home/student/Documents/cartographer/test/submap_test_l_"+std::to_string(scan_seq)+".pcd";
+	//pcdfn2= "/home/student/Documents/cartographer/submap_test_h.pcd";
+	//pcdfn3= "/home/student/Documents/cartographer/submap_test_l.pcd";
         pcl::io::loadPCDFile<pcl::PointXYZ> (pcdfn1, *target_cloud);
 	hybridgrid_2_pcd(hres_hybrid_grid, pcdfn2, hgrid_pcd_probthresh);
 	hybridgrid_2_pcd(lres_hybrid_grid, pcdfn3, hgrid_pcd_probthresh);
@@ -84,6 +99,7 @@ void scan2_2_pcd(const TimedPointCloud t_cloud,std::string pcdfn)
   //Eigen::Vector3f position;
 //};
 //	TimedPointCloud is std::vector<TimedRangefinderPoint>;
+	if (savepcdflag==0) return;
 	std::cout<<"\nscan2_2_pcd #points: "<<t_cloud.size()<<" " <<pcdfn<<"\n";
 	pcl::PointCloud<pcl::PointXYZ>::Ptr scan_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	scan_cloud->height   = 1;
@@ -106,6 +122,7 @@ void scan2_2_pcd(const TimedPointCloud t_cloud,std::string pcdfn)
  */
 void scan_2_pcd(const sensor::PointCloud h_cloud,std::string pcdfn)
 {
+	if (savepcdflag==0) return;
 	std::cout<<"\nscan_2_pcd #points: "<<h_cloud.size()<<" " <<pcdfn<<"\n";
 	pcl::PointCloud<pcl::PointXYZ>::Ptr scan_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	scan_cloud->height   = 1;
@@ -131,6 +148,7 @@ void scan_2_pcd(const sensor::PointCloud h_cloud,std::string pcdfn)
  * */
 void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn, float hitprobthresh=0.1)
 {
+	if (savepcdflag==0) return;
 	std::cout<<"\n***** hybridgrid_2_pcd***************\n"<<"hitprobthresh: "<< hitprobthresh<<"\n";
 	hgrid_info(hybrid_grid,false);
 
@@ -182,7 +200,10 @@ LocalTrajectoryBuilder3D::LocalTrajectoryBuilder3D(
               options_.real_time_correlative_scan_matcher_options())),
       ceres_scan_matcher_(absl::make_unique<scan_matching::CeresScanMatcher3D>(
           options_.ceres_scan_matcher_options())),
-      range_data_collator_(expected_range_sensor_ids) {}
+      range_data_collator_(expected_range_sensor_ids) {
+      outfile.open("/home/student//Documents/cartographer/test/scanmatch_log.txt");
+      ssout<<"time, scanfn, init x, y, z, qw, qx, qy, qz\n";
+      }
 
 LocalTrajectoryBuilder3D::~LocalTrajectoryBuilder3D() {}
 
@@ -291,7 +312,7 @@ LocalTrajectoryBuilder3D::AddRangeData(
     LOG(INFO) << "IMU not yet initialized.";
     return nullptr;
   }
-
+  //std::cout<<"pre-filtering synchronized_data.ranges.size() "<< synchronized_data.ranges.size()<<"\n";
   CHECK(!synchronized_data.ranges.empty());
   CHECK_LE(synchronized_data.ranges.back().point_time.time, 0.f);
   const common::Time time_first_point =
@@ -309,14 +330,18 @@ LocalTrajectoryBuilder3D::AddRangeData(
   //be original resolution:
 
   std::string pcd_syncdata="/home/student/Documents/cartographer/test/unsync_rangedata.pcd";
-  scan2_2_pcd(unsynchronized_data.ranges, pcd_syncdata);
+  // one piece of scan data, when scans need to be assembled. puck lidar 360 deg made of 160 udp data packets/ros msgs. skip saving to save time
+  //scan2_2_pcd(unsynchronized_data.ranges, pcd_syncdata);
 
   synchronized_data.ranges = sensor::VoxelFilter(
       synchronized_data.ranges, 0.5f * options_.voxel_filter_size());
+  //std::cout<<"filtering synchronized_data.ranges.size() "<< synchronized_data.ranges.size()<<"\n";
+
   accumulated_point_cloud_origin_data_.emplace_back(
       std::move(synchronized_data));
   ++num_accumulated_;
 
+  //std::cout<<"after move synchronized_data.ranges.size() "<< synchronized_data.ranges.size()<<"\n";
   if (num_accumulated_ < options_.num_accumulated_range_data()) {
     return nullptr;
   }
@@ -426,7 +451,6 @@ LocalTrajectoryBuilder3D::AddRangeData(
       sensor_duration, extrapolation_result.current_pose,
       extrapolation_result.gravity_from_tracking);
 }
-int scan_seq=0;
 std::unique_ptr<LocalTrajectoryBuilder3D::MatchingResult>
 LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     const common::Time time,
@@ -439,11 +463,13 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     return nullptr;
   }
 
-  std::string pcd_filteredrangedata="/home/student/Documents/cartographer/test/filtered_range_data_in_tracking.pcd";
+  std::string pcd_filteredrangedata="/home/student/Documents/cartographer/test/filtered_range_data_in_tracking_"+std::to_string(scan_seq)+".pcd";
   scan_2_pcd(filtered_range_data_in_tracking.returns,pcd_filteredrangedata);
 
   const auto scan_matcher_start = std::chrono::steady_clock::now();
 
+  std::cout<<"\n******   high_resolution_adaptive_voxel_filter_options.min_num_points ******\n"<< options_.high_resolution_adaptive_voxel_filter_options().min_num_points();
+  std::cout<<"\n******   low_resolution_adaptive_voxel_filter_options.min_num_points ******\n"<< options_.low_resolution_adaptive_voxel_filter_options().min_num_points();
   const sensor::PointCloud high_resolution_point_cloud_in_tracking =
       sensor::AdaptiveVoxelFilter(
           filtered_range_data_in_tracking.returns,
@@ -468,6 +494,19 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     LOG(WARNING) << "Scan matching failed.";
     return nullptr;
   }
+  std::string pcd_hrt="/home/student/Documents/cartographer/test/scan_hrt_"+std::to_string(scan_seq)+".pcd";
+  scan_2_pcd(high_resolution_point_cloud_in_tracking,pcd_hrt);
+  scan_seq++;
+
+//jwang save scan time, filename, pose_prediction, pose_estimate
+//time is const common::Time current_sensor_time = synchronized_data.time;
+  ssout <<cartotime_2_ns(time) <<", "<< ("scan_hrt_"+std::to_string(scan_seq)+".pcd, ")
+    <<pose_prediction.translation()[0] <<", " <<pose_prediction.translation()[2] <<", "<<pose_prediction.translation()[2] <<", "
+    << pose_prediction.rotation().w() <<", "<< pose_prediction.rotation().x() <<", "
+    << pose_prediction.rotation().y() <<", "<< pose_prediction.rotation().z() <<"\n";
+  outfile<<ssout.str();
+  ssout.str("");
+
   extrapolator_->AddPose(time, *pose_estimate);
 
   const auto scan_matcher_stop = std::chrono::steady_clock::now();
@@ -486,9 +525,6 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
 
   /*jwang debug start */
   std::cout<<"\n****** insert into submap******\n";
-  std::string pcd_hrt="/home/student/Documents/cartographer/test/scan_hrt_"+std::to_string(scan_seq)+".pcd";
-  scan_2_pcd(high_resolution_point_cloud_in_tracking,pcd_hrt);
-  scan_seq++;
 
 //  std::cout<<"active_submap: "<< &active_submaps_ <<"\n";
   std::cout<<"active_submap.submaps.size(): "<< active_submaps_.submaps().size() <<"\n";

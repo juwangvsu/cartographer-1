@@ -170,9 +170,15 @@ class CeresScanMatcher3DTest : public ::testing::Test {
 	  Eigen::Vector3d trans2;
 	  trans2 = Eigen::Vector3d(x, y,z);
 	  //trans2 = Eigen::Vector3d(-0.95, -0.05, 0.05);
+	  std::cout<<"\nmake pose: input pose: wxyz " <<qw<<" " << qx<<" "<< qy<<" " <<qz<<"\n";
 	  Eigen::Quaternion<double> rotation(qw,qx,qy,qz);
+	  Eigen::Quaternion<double> rotation3=rotation.normalized();
+	  Eigen::Matrix3d mat3 = rotation3.toRotationMatrix();
+	  Eigen::Quaternion<double> rotation2(mat3);
+	  std::cout<<"\nmake pose: eigen pose normalized: wxyz " <<rotation3.w()<<" " << rotation3.x()<<" "<< rotation3.y()<<" " <<rotation3.z()<<"\n";
+	  std::cout<<"\nmake pose: eigen pose recreated: wxyz " <<rotation2.w()<<" " << rotation2.x()<<" "<< rotation2.y()<<" " <<rotation2.z()<<"\n";
 	  //Eigen::Quaternion<double> rotation(1,0,0,0);
-	  return transform::Rigid3d(trans2, rotation);
+	  return transform::Rigid3d(trans2, rotation2);
   }
 /******************************************************
  * convert PCD cloud to carto's hybrid_grid
@@ -253,6 +259,48 @@ class CeresScanMatcher3DTest : public ::testing::Test {
     ceres_scan_matcher_.reset(new CeresScanMatcher3D(options_));
   }
 
+  /*********************************************************
+   * sweep init pose to test costfun 
+   */
+void sweeptest(const transform::Rigid3d& initial_pose, sensor::PointCloud &point_cloud, HybridGrid * hybrid_grid)
+{
+    std::ofstream outFile("/home/student//Documents/cartographer/test_ceres_pcd/sweep4.txt");
+    std::ofstream outFile2("/home/student//Documents/cartographer/test_ceres_pcd/sweep4.csv"); //gnuplot csv
+    outFile2 << "# pose_x, y, z, costfun, ceres_initcost, ceres_finalcost\n";
+    std::ostringstream ssout;
+    transform::Rigid3d pose;
+    ceres::Solver::Summary summary;
+    double *residual = new double [point_cloud_5_.size()];
+    double trans[3]= {initial_pose.translation().x(), initial_pose.translation().y(),initial_pose.translation().z()};
+		    
+    double quat[4] ={initial_pose.rotation().w(),initial_pose.rotation().x(),initial_pose.rotation().y(),initial_pose.rotation().z()};
+    //OccupiedSpaceCostFunction3D::scan_matching_verbose=1;
+    OccupiedSpaceCostFunction3D  costfun (1.0, point_cloud, *hybrid_grid);
+    double sweepstep,sweeprange;
+    std::istringstream(mymap["sweepstep"])>>sweepstep;	    
+    std::istringstream(mymap["sweeprange"])>>sweeprange;	
+    int sweepcnt = sweeprange/sweepstep;	
+    for (int j = -sweepcnt; j<sweepcnt; j++){
+	for(int k=-sweepcnt; k<sweepcnt; k++){
+	    trans[0]= sweepstep*j;
+	    trans[1]= sweepstep*k;
+	    transform::Rigid3d pose2(Eigen::Matrix<double, 3, 1>(trans[0],trans[1],trans[2]),initial_pose.rotation());
+	    costfun(trans,quat, residual);
+	    double sqsum_residual=0;
+	    for (int i =0; i< point_cloud.size();i++){
+		    sqsum_residual +=residual[i]*residual[i];
+	    }
+	    summary = run_lowreso_match(pose2,point_cloud,hybrid_grid, pose);
+	    ssout.str("");
+	    ssout<<"\n\t init_xyz: "<<trans[0]<<" "<<trans[1]<<" "<<trans[2]<<" residual " 
+			    << sqsum_residual <<" ceres init/final cost " << summary.initial_cost<<" " << summary.final_cost <<" final pose "
+			    <<pose.translation().x() <<" " << pose.translation().y() <<" " <<pose.translation().z()<<"";
+	    outFile << ssout.str();
+	    outFile2 << trans[0]<<", "<<trans[1]<<", "<<trans[2]<<", " <<sqsum_residual<<", " << summary.initial_cost<<", " << summary.final_cost<<"\n";
+	    std::cout<< ssout.str();
+	}
+    }
+}
   /*********************************************************
    * run low resolution scanmatch 
    */
@@ -336,6 +384,8 @@ class CeresScanMatcher3DTest : public ::testing::Test {
 	    cloud5 = readPCD_file(pcdf4);
 
 	    show_pcl_2cloud(cloud1,cloud2, "high res scan and submap");
+	    transform_cloud (cloud1, cloud3, initial_pose2.translation(), initial_pose2.rotation());
+	    show_pcl_2cloud(cloud3, cloud2, "high res scan and submap");
 	    float hgrid_res_h;
 	    float hgrid_res_l;
 	    std::istringstream ss_h(mymap["hgrid_res_h"]);
@@ -400,28 +450,8 @@ class CeresScanMatcher3DTest : public ::testing::Test {
 		    double quat[4] ={initial_pose2.rotation().w(),initial_pose2.rotation().x(),initial_pose2.rotation().y(),initial_pose2.rotation().z()};
 
 		    std::cout<<"****************** both usehighres and uselowres are false, perform sweep func ***\n\ttrans" << trans[0]<<" "<<trans[1]<<" "<<trans[2] <<" quat "<< quat[0]<<" " << quat[1]<<" " <<quat[2]<<" " <<quat[3] <<"\n";
-    
-		    //OccupiedSpaceCostFunction3D::scan_matching_verbose=1;
-		    OccupiedSpaceCostFunction3D  costfun (1.0, point_cloud_5_, *hybrid_grid_5_);
-    		
-	    	double sweepstep,sweeprange;
-		std::istringstream(mymap["sweepstep"])>>sweepstep;	    
-		std::istringstream(mymap["sweeprange"])>>sweeprange;	
-	        int sweepcnt = sweeprange/sweepstep;	
-		    for (int j = -sweepcnt; j<sweepcnt; j++){
-			    trans[0]= sweepstep*j;
-		    
-			    transform::Rigid3d pose2(Eigen::Matrix<double, 3, 1>(trans[0],trans[1],trans[2]),initial_pose2.rotation());
-			    costfun(trans,quat, residual);
-			    double sqsum_residual=0;
-			    for (int i =0; i< point_cloud_5_.size();i++){
-				    sqsum_residual +=residual[i]*residual[i];
-			    }
-			    summary = run_lowreso_match(pose2,point_cloud_5_,hybrid_grid_5_, pose);
-			    std::cout<<"\n\t init_xyz: "<<trans[0]<<" "<<trans[1]<<" "<<trans[2]<<" residual " 
-				    << sqsum_residual <<" ceres init/final cost " << summary.initial_cost<<" " << summary.final_cost <<" final pose "
-				    <<pose.translation().x() <<" " << pose.translation().y() <<" " <<pose.translation().z()<<"\n";
-		    }
+
+		    sweeptest(initial_pose2, point_cloud_5_, hybrid_grid_5_);
 	    }
 
 	    //ceres_scan_matcher_->Match(initial_pose2.translation(), initial_pose2, point_clouds_and_hybrid_grids, &pose,&summary);
@@ -460,6 +490,7 @@ class CeresScanMatcher3DTest : public ::testing::Test {
 //	pose_trans.translation()=v3d;
 	pose_trans.translation()=trans;
 	pose_trans.linear()=mat4;
+	std::cout<<"transform_cloud quat0 wxyz: "<< quat0.w()<<" "<< quat0.x()<<" "<< quat0.y()<<" "<<quat0.z() <<"\n";
 	std::cout<<"Eigen::Transform: "<< pose_trans.translation() <<"\n";
 	std::cout<<"Eigen::Transform: rotation"<< pose_trans.rotation() <<"\n";
 	pcl::transformPointCloud (*cloud_in, *cloud_out, pose_trans);

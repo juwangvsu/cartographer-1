@@ -19,7 +19,7 @@
 
 #include <chrono>
 #include <memory>
-
+#include <fstream>
 #include "cartographer/common/time.h"
 #include "cartographer/mapping/3d/submap_3d.h"
 #include "cartographer/mapping/internal/3d/scan_matching/ceres_scan_matcher_3d.h"
@@ -118,6 +118,10 @@ class LocalTrajectoryBuilder3D {
   RangeDataCollator range_data_collator_;
 
   absl::optional<common::Time> last_sensor_time_;
+  std::ofstream outfile;
+  //("/home/student//Documents/cartographer/test/scanmatch_log.txt");
+   std::ostringstream ssout; 
+
 };
 
 }  // namespace mapping

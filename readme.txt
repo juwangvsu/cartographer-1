@@ -1,11 +1,12 @@
 -------------sticky-------------------------
 "readme pointcloud ndt icp slam cartographer code "
+~/Documents/cartographer$ vi readme_carto_homepc.txt
 
 ------12/20/21 hacking ceres_scan_matcher_3d_test.cc ---------
  test ceres scan match using turtlebot data:
    reproduce result in ceres_scan_matcher_3d_test.cc
  
-------12/11/21 hacking ceres_scan_matcher_3d_test.cc ---------
+------12/11/21, 1/25/2022 hacking ceres_scan_matcher_3d_test.cc ---------
 to test pcd files 
 	- add pcl library to the CMakeLists.txt
 	- it seems work. pcl code works fine inside the test code
@@ -23,6 +24,10 @@ test mode:
 	(2) ptselection = 1
 		use a single pcd file for demo test
 	(3) ptselection = 2
+		use 2 or 4 pcd files. filename and other options
+			 from testopt2.txt, 
+		usehighres=1|0 uselowres=1|0
+			if both 0, do sweep test
 
 dbgfilename: dbg_pc3.txt
 ptselection: 1
