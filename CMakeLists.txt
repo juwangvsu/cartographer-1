@@ -15,7 +15,11 @@
 cmake_minimum_required(VERSION 3.2)
 
 project(cartographer)
-
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options(-Wno-sign-compare)
+add_compile_options(-Wno-unused-but-set-variable)
 set(CARTOGRAPHER_MAJOR_VERSION 1)
 set(CARTOGRAPHER_MINOR_VERSION 0)
 set(CARTOGRAPHER_PATCH_VERSION 0)
@@ -40,6 +44,7 @@ find_package(Ceres REQUIRED COMPONENTS SuiteSparse)
 find_package(Eigen3 REQUIRED)
 find_package(LuaGoogle REQUIRED)
 find_package(PCL 1.5 REQUIRED)
+find_package(yaml-cpp REQUIRED)
 if(WIN32)
   # On Windows, Protobuf is incorrectly found by the bundled CMake module, so prefer native CMake config.
   set(protobuf_MODULE_COMPATIBLE TRUE CACHE INTERNAL "")
@@ -244,6 +249,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES})
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   "${PCL_INCLUDE_DIRS}")
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PCL_LIBRARIES})
+
+target_link_libraries (${PROJECT_NAME} PUBLIC ${YAML_CPP_LIBRARIES})
 
 if (WIN32)
   find_package(glog REQUIRED)

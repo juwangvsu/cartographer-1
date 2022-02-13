@@ -86,6 +86,54 @@ VoxelKeyType GetVoxelCellIndex(const Eigen::Vector3f& point,
 }
 
 template <class T, class PointFunction>
+std::vector<bool> EdgeVoxelFilterIndices(
+    const std::vector<T>& point_cloud, const float resolution,
+    PointFunction&& point_function, const float voxeledgeratio) {
+  // According to https://en.wikipedia.org/wiki/Reservoir_sampling
+  std::minstd_rand0 generator;
+  int maxneighbors=0;
+  std::vector<int> points_neighbors(point_cloud.size(), 0);
+  absl::flat_hash_map<VoxelKeyType, std::pair<int, int>>
+      voxel_count_and_point_index;
+  for (size_t i = 0; i < point_cloud.size(); i++) {
+    auto& voxel = voxel_count_and_point_index[GetVoxelCellIndex(
+        point_function(point_cloud[i]), resolution)];
+    voxel.first++;
+    if (voxel.first>maxneighbors) maxneighbors=voxel.first;
+    if (voxel.first == 1) {
+      voxel.second = i;
+    } else {
+      std::uniform_int_distribution<> distribution(1, voxel.first);
+      if (distribution(generator) == voxel.first) {
+        voxel.second = i;
+      }
+    }
+  }
+
+  //update neighbor cnts
+  for (size_t i = 0; i < point_cloud.size(); i++) {
+    auto& voxel = voxel_count_and_point_index[GetVoxelCellIndex(
+        point_function(point_cloud[i]), resolution)];
+    points_neighbors[i]=voxel.first; //update the number of neighbors of this point
+  }
+  std::vector<bool> points_used(point_cloud.size(), false);
+//  std::cout<<"points_neighbors maxneighbors: "<< maxneighbors<<"\n";
+  for (size_t i = 0; i < point_cloud.size(); i++) {
+	  //std::cout<<" "<<points_neighbors[i];
+	  if (points_neighbors[i]< int(maxneighbors*voxeledgeratio)){ 
+//	  	std::cout<<" true ";
+		  points_used[i]=true;
+	  }
+  }
+//  std::cout<<"\n";
+  /*
+  for (const auto& voxel_and_index : voxel_count_and_point_index) {
+    points_used[voxel_and_index.second.second] = true;
+  }
+  */
+  return points_used;
+}
+template <class T, class PointFunction>
 std::vector<bool> RandomizedVoxelFilterIndices(
     const std::vector<T>& point_cloud, const float resolution,
     PointFunction&& point_function) {
@@ -130,6 +178,29 @@ std::vector<T> RandomizedVoxelFilter(const std::vector<T>& point_cloud,
 }
 
 }  // namespace
+
+        //jwang filter the keep the edge of the points, rad: float, meters the radius from the edge to keep.
+PointCloud VoxelFilterEdge(const PointCloud& point_cloud, const float rad, const float voxeledgeratio){
+  const std::vector<bool> points_used = EdgeVoxelFilterIndices(
+      point_cloud.points(), rad,
+      [](const RangefinderPoint& point) { return point.position; }, voxeledgeratio);
+
+  std::vector<RangefinderPoint> filtered_points;
+  for (size_t i = 0; i < point_cloud.size(); i++) {
+    if (points_used[i]) {
+      filtered_points.push_back(point_cloud[i]);
+    }
+  }
+  std::vector<float> filtered_intensities;
+  CHECK_LE(point_cloud.intensities().size(), point_cloud.points().size());
+  for (size_t i = 0; i < point_cloud.intensities().size(); i++) {
+    if (points_used[i]) {
+      filtered_intensities.push_back(point_cloud.intensities()[i]);
+    }
+  }
+  return PointCloud(std::move(filtered_points),
+                    std::move(filtered_intensities));
+}
 
 std::vector<RangefinderPoint> VoxelFilter(
     const std::vector<RangefinderPoint>& points, const float resolution) {

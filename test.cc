@@ -10,6 +10,9 @@
 #include <vector>
 #include "Eigen/Core"
 #include <Eigen/Geometry>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+
 using namespace std;
 template<class T> struct Point{
     template <typename NewType> Point<NewType> cast() const{
@@ -61,6 +64,10 @@ int main()
     std::cout<<"Eigen::Vector3d: "<< v3d <<"\n";
     std::cout<<"Eigen::Transform: "<< pose_transform.translation() <<"\n";
     std::cout<<"Eigen::Transform: rotation"<< pose_transform.rotation() <<"\n";
+    Eigen::Matrix<float, 3, 1> translation0(2,2,2);
+    Eigen::Matrix<double, 3, 1> translation1(translation0.cast<double>());
+
+
     Point<float> p1;
      Point<double> p2;
     tt t1{1,2};
@@ -117,5 +124,23 @@ token = strtok(const_cast<char*>(myoptstr.c_str()), "\n");
     std::cout<<"\n*****************\ncout mymap:\n";
     for (auto keyval : mymap)
         cout << keyval.first << ":" << keyval.second << endl;
+
+      pcl::PointCloud<pcl::PointXYZ> cloud;
+
+  // Fill in the cloud data
+  cloud.width    = 5;
+  cloud.height   = 1;
+  cloud.is_dense = false;
+  cloud.points.resize (cloud.width * cloud.height);
+
+  for (auto& point: cloud)
+  {
+    point.x = 1024 * rand () / (RAND_MAX + 1.0f);
+    point.y = 1024 * rand () / (RAND_MAX + 1.0f);
+    point.z = 1024 * rand () / (RAND_MAX + 1.0f);
+  }
+
+  pcl::io::savePCDFileASCII ("test_pcd.pcd", cloud);
+
     return 0;
 }

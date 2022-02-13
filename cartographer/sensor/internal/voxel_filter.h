@@ -27,6 +27,9 @@
 namespace cartographer {
 namespace sensor {
 
+	//jwang filter the keep the edge of the points, rad: float, meters the radius from the edge to keep.
+PointCloud VoxelFilterEdge(const PointCloud& point_cloud, const float rad, const float voxeledgeratio);
+
 std::vector<RangefinderPoint> VoxelFilter(
     const std::vector<RangefinderPoint>& points, const float resolution);
 PointCloud VoxelFilter(const PointCloud& point_cloud, const float resolution);

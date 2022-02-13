@@ -68,6 +68,10 @@ proto::LocalTrajectoryBuilderOptions3D CreateLocalTrajectoryBuilderOptions3D(
       parameter_dictionary->GetDictionary("submaps").get());
   options.set_use_intensities(parameter_dictionary->GetBool("use_intensities"));
   options.set_hgrid_pcd_probthresh(parameter_dictionary->GetDouble("hgrid_pcd_probthresh"));
+  options.set_voxeledgeratio(parameter_dictionary->GetDouble("voxeledgeratio"));
+  options.set_voxeledgesize(parameter_dictionary->GetDouble("voxeledgesize"));
+  options.set_scanmatch_mode(parameter_dictionary->GetInt("scanmatch_mode"));
+  options.set_pcl_viewerflag(parameter_dictionary->GetInt("pcl_viewerflag"));
   return options;
 }
 

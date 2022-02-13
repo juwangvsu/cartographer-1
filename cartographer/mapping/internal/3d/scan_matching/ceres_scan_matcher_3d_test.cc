@@ -22,6 +22,7 @@
 #include "cartographer/common/internal/testing/lua_parameter_dictionary_test_helpers.h"
 #include "cartographer/mapping/3d/hybrid_grid.h"
 #include "cartographer/sensor/point_cloud.h"
+#include "cartographer/sensor/internal/voxel_filter.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "cartographer/transform/rigid_transform_test_helpers.h"
 #include "gtest/gtest.h"
@@ -180,6 +181,45 @@ class CeresScanMatcher3DTest : public ::testing::Test {
 	  //Eigen::Quaternion<double> rotation(1,0,0,0);
 	  return transform::Rigid3d(trans2, rotation2);
   }
+  /*************** convert xyzi cloud t xyz cloud  ****/
+  void convert_xyzi_2_xyz(pcl::PointCloud<pcl::PointXYZI>::Ptr pclcloud_i, pcl::PointCloud<pcl::PointXYZ>::Ptr pclcloud)
+  {
+	  pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+	  pclcloud->width = pclcloud_i->width;
+	  pclcloud->height = 1;
+	  pclcloud->is_dense = false;
+
+	  pclcloud->points.resize (pclcloud->width * pclcloud->height);
+	  for (int i =0; i< pclcloud->width; i++){
+		  pclcloud->points[i].x= pclcloud_i->points[i].x;
+		  pclcloud->points[i].y= pclcloud_i->points[i].y;
+		  pclcloud->points[i].z= pclcloud_i->points[i].z;
+	  }
+	  //pclcloud= target_cloud; this not work
+  }
+/******************************************************
+ * convert PCD XYZI cloud to carto's hybrid_grid
+ */
+  
+  void PCDCloud_2_HybridGrid(pcl::PointCloud<pcl::PointXYZI>::Ptr pclcloud, HybridGrid & hybrid_grid, IntensityHybridGrid & intensity_hybrid_grid)
+  {
+    int ptcount=0;
+
+    Eigen::Vector3f point;
+    for (const pcl::PointXYZI& pointxyzi : pclcloud->points)
+    {
+	ptcount++;
+	point(0)=pointxyzi.x;
+	point(1)=pointxyzi.y;
+	point(2)=pointxyzi.z;
+	hybrid_grid.SetProbability(
+          hybrid_grid.GetCellIndex(point), pointxyzi.intensity);
+	intensity_hybrid_grid.AddIntensity(
+          intensity_hybrid_grid.GetCellIndex(point),
+          50);
+    }
+  }
+  
 /******************************************************
  * convert PCD cloud to carto's hybrid_grid
  */
@@ -202,6 +242,27 @@ class CeresScanMatcher3DTest : public ::testing::Test {
           50);
     }
     std::cout<< "pcd RangefinderPoint: ";
+  }
+
+  // tbi
+  void PCLCloud_2_Range(pcl::PointCloud<pcl::PointXYZ>::Ptr pclcloud)
+  {
+  }
+/******************************************************
+ * convert  carto's sensor::PointCloud to PCL/PCD cloud
+ */
+  void PointCloud_2_PCLCloud(sensor::PointCloud & point_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr pclcloud)
+  {
+	  int numpoints = point_cloud.size();
+	  pclcloud->width=numpoints;
+	  pclcloud->height=1;
+	  pclcloud->points.resize (pclcloud->width * pclcloud->height);
+	  auto points=point_cloud.points();
+	  for (int i=0;i <numpoints; i++){
+		  pclcloud->points[i].x=points[i].position(0);
+		  pclcloud->points[i].y=points[i].position(1);
+		  pclcloud->points[i].z=points[i].position(2);
+	  }
   }
 /******************************************************
  * convert PCD cloud to carto's sensor::PointCloud
@@ -237,12 +298,23 @@ class CeresScanMatcher3DTest : public ::testing::Test {
 
 /***********************************************
  * read a pcd file, return cloud
- */
-  pcl::PointCloud<pcl::PointXYZ>::Ptr readPCD_file(std::string pcdfn1)
+  pcl::PointCloud<pcl::PointXYZI>::Ptr readPCD_file(std::string pcdfn1)
   {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr target_cloud (new pcl::PointCloud<pcl::PointXYZI>);
+	pcl::io::loadPCDFile<pcl::PointXYZI> (pcdfn1, *target_cloud);
+	LOG(INFO) << *target_cloud;
+	return target_cloud;
+  }
+ */
+/***********************************************
+ * read a pcd file, return cloud
+ */
+template <class T> 
+typename  pcl::PointCloud<T>::Ptr readPCD_file(std::string pcdfn1)
+  {
+        typename pcl::PointCloud<T>::Ptr target_cloud (new pcl::PointCloud<T>);
 //	pcdfn1= "/home/student/Documents/AirSim/ros/src/hdl_graph_slam/mapdata_13.pcd";
-	pcl::io::loadPCDFile<pcl::PointXYZ> (pcdfn1, *target_cloud);
+	pcl::io::loadPCDFile<T> (pcdfn1, *target_cloud);
 	LOG(INFO) << *target_cloud;
 	return target_cloud;
   }
@@ -364,28 +436,60 @@ void sweeptest(const transform::Rigid3d& initial_pose, sensor::PointCloud &point
 	    std::string pcdf1, pcdf2, pcdf3, pcdf4;
 	    transform::Rigid3d initial_pose2;
 	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1;
-	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2;
+	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2(new pcl::PointCloud<pcl::PointXYZ>);
+	    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud2_i;
 	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud4;
-	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud5;
+	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud5(new pcl::PointCloud<pcl::PointXYZ>);
+	    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud5_i;
 	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud3(new pcl::PointCloud<pcl::PointXYZ>);
 	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud6(new pcl::PointCloud<pcl::PointXYZ>);
+	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+	    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1_edgefiltered(new pcl::PointCloud<pcl::PointXYZ>);
 	    pcdf1 =  mymap["pcdfilename1"]; //scan pcd high res
 	    pcdf2 =  mymap["pcdfilename2"]; //submap pcd high res
 	    pcdf3 =  mymap["pcdfilename3"]; //scan pcd low res
 	    pcdf4 =  mymap["pcdfilename4"]; //submap pcd low res
 	    initial_pose2 = makepose(mymap["initpose"]);
 
-	    cloud1 = readPCD_file(pcdf1);
+	    int hgridxyzi = std::stoi(mymap["hgridxyzi"]);
+	    //read scan data, high and low res
+	    cloud1 = readPCD_file<pcl::PointXYZ>(pcdf1);
 	    PCDCloud_2_PointCloud(cloud1,point_cloud_4_);
-	    //show_pcl_cloud(cloud1);
-	    cloud2 = readPCD_file(pcdf2);
-	    cloud4 = readPCD_file(pcdf3);
+	    cloud4 = readPCD_file<pcl::PointXYZ>(pcdf3);
 	    PCDCloud_2_PointCloud(cloud4,point_cloud_5_);
-	    cloud5 = readPCD_file(pcdf4);
 
-	    show_pcl_2cloud(cloud1,cloud2, "high res scan and submap");
+    //	    std::vector<RangefinderPoint> cloud1_ranges = PCLcloud_2_Range(cloud1);
+
+	  //  std::vector<PointCloud> 
+	  auto cloud1_filtered_carto =
+	    sensor::VoxelFilter(
+      point_cloud_4_, 1.5f );
+	  auto cloud1_edgefiltered_carto =
+	    sensor::VoxelFilterEdge(
+      point_cloud_4_, 0.5f, 0.6f );
+	  PointCloud_2_PCLCloud(cloud1_filtered_carto,cloud1_filtered);
+	  PointCloud_2_PCLCloud(cloud1_edgefiltered_carto,cloud1_edgefiltered);
+	    show_pcl_2cloud(cloud1,cloud1_filtered, "high res scan and voxel filtered 0.5");
+	    show_pcl_2cloud(cloud1,cloud1_edgefiltered, "high res scan and voxel edgefiltered 0.5");
+	    show_pcl_cloud(cloud1, "high res scan cloud1");
+	    show_pcl_cloud(cloud1_edgefiltered, "high res scan voxel edgefiltered 0.5");
+	    //read hbrid data, xyzi or xyz type, high and low res
+	    if (hgridxyzi==1){
+	    	cloud2_i=readPCD_file<pcl::PointXYZI>(pcdf2);
+	    	cloud5_i = readPCD_file<pcl::PointXYZI>(pcdf4);
+		std::cout<<"\n converted cloud2: " <<cloud2<<"\n";
+		convert_xyzi_2_xyz(cloud2_i, cloud2);
+		std::cout<<" converted cloud2: " <<cloud2<<"\n";
+		convert_xyzi_2_xyz(cloud5_i, cloud5);
+	    }
+	    else{
+	    	cloud2 = readPCD_file<pcl::PointXYZ>(pcdf2);
+	    	cloud5 = readPCD_file<pcl::PointXYZ>(pcdf4);
+	    }
+
+	    show_pcl_2cloud(cloud1,cloud2, "high res scan and submap no transform");
 	    transform_cloud (cloud1, cloud3, initial_pose2.translation(), initial_pose2.rotation());
-	    show_pcl_2cloud(cloud3, cloud2, "high res scan and submap");
+	    show_pcl_2cloud(cloud3, cloud2, "high res scan and submap, transform initial_pose2");
 	    float hgrid_res_h;
 	    float hgrid_res_l;
 	    std::istringstream ss_h(mymap["hgrid_res_h"]);
@@ -395,8 +499,14 @@ void sweeptest(const transform::Rigid3d& initial_pose, sensor::PointCloud &point
 	    hybrid_grid_4_ = new HybridGrid(hgrid_res_h);
 	    hybrid_grid_5_ = new HybridGrid(hgrid_res_l);
 
-	    PCDCloud_2_HybridGrid(cloud2,*hybrid_grid_4_,intensity_hybrid_grid_4_);	    
-	    PCDCloud_2_HybridGrid(cloud5,*hybrid_grid_5_,intensity_hybrid_grid_5_);	    
+	    if (hgridxyzi==0){
+	    	PCDCloud_2_HybridGrid(cloud2,*hybrid_grid_4_,intensity_hybrid_grid_4_);	    
+	    	PCDCloud_2_HybridGrid(cloud5,*hybrid_grid_5_,intensity_hybrid_grid_5_);	    
+	    }else{
+		//hgrid pcd is xyzi format with prob value.
+	    	PCDCloud_2_HybridGrid(cloud2_i,*hybrid_grid_4_,intensity_hybrid_grid_4_);	    
+	    	PCDCloud_2_HybridGrid(cloud5_i,*hybrid_grid_5_,intensity_hybrid_grid_5_);	    
+	    }
 	
 	    IntensityHybridGrid* intensity_hybrid_grid_ptr =
 		    point_cloud_2_.intensities().empty() ? 

@@ -2,6 +2,13 @@
 "readme pointcloud ndt icp slam cartographer code "
 ~/Documents/cartographer$ vi readme_carto_homepc.txt
 
+--- pkg-config find library path link -------
+to find a package include and link path, use pkg-config tool:
+#pkg-config --libs pcl_io-1.8
+	this show the library path for linking
+#pkg-config --list-all|grep pcl
+# not all library can be find this way. some such as boost not find this way
+
 ------12/20/21 hacking ceres_scan_matcher_3d_test.cc ---------
  test ceres scan match using turtlebot data:
    reproduce result in ceres_scan_matcher_3d_test.cc

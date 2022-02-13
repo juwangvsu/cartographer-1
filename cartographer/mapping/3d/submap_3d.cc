@@ -311,9 +311,9 @@ void Submap3D::ToResponseProto(
     const transform::Rigid3d& global_submap_pose,
     proto::SubmapQuery::Response* const response) const {
   response->set_submap_version(num_range_data());
-  std::cout<<"submap ToResponseProto:\n";
+//  std::cout<<"submap ToResponseProto:\n";
   //std::shared_ptr<const cartographer::mapping::Submap3D> thissubmap(this);
-  submap_info2(this, submap_dbgflag);
+  //submap_info2(this, submap_dbgflag);
   AddToTextureProto(*high_resolution_hybrid_grid_, global_submap_pose,
                     response->add_textures());
   AddToTextureProto(*low_resolution_hybrid_grid_, global_submap_pose,
@@ -376,9 +376,11 @@ std::vector<std::shared_ptr<const Submap3D>> ActiveSubmaps3D::InsertData(
                        local_from_gravity_aligned,
                        rotational_scan_matcher_histogram_in_gravity);
   }
+  /*
   if (submaps_.size()>0){
   	submap_info(submaps_.front(), false);
   }
+  */
   if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) {
     submaps_.front()->Finish();
   }

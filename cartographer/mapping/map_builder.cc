@@ -205,7 +205,7 @@ std::string MapBuilder::SubmapToProto(
            " from trajectory " + std::to_string(submap_id.trajectory_id) +
            " but it does not exist: maybe it has been trimmed.";
   }
-  std::cout<<"SubmapToProto ToResponseProto\n";
+  //std::cout<<"SubmapToProto ToResponseProto\n";
   submap_data.submap->ToResponseProto(submap_data.pose, response);
   return "";
 }

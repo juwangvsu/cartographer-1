@@ -4,21 +4,26 @@ dbgfilename: dbg_pc3.txt
 ptselection: 2
 #pcdfilename: /home/student/Documents/cartographer/test/mavros_realsense_pcd/mapdata_5.pcd
 pcdfilename: /home/student/Documents/cartographer/test/turtlebot3_pcd/mapdata_5.pcd
-# pcdfilename1 for scan pcd
-#pcdfilename1: /home/student/Documents/cartographer/test_ceres_pcd/scan_test_h.pcd
-#pcdfilename2: /home/student/Documents/cartographer/test_ceres_pcd/submap_test_h.pcd
-pcdfilename1: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/scan_hrt_39.pcd
-pcdfilename2: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/submap_test_h_37.pcd
-pcdfilename3: /home/student/Documents/cartographer/test_ceres_pcd/scan_test_l.pcd
-pcdfilename4: /home/student/Documents/cartographer/test_ceres_pcd/submap_test_l.pcd
+# pcdfilename1/3 for scan pcd, 2/4 for hybridgrid
+# hgridxyzi 1 for <pcl::PointXYZI> type pcd, 0 for <pcl::PointXYZ>, if 1 corresponding pcd file must be xyzi pcd file
+hgridxyzi: 0
+pcdfilename1: /home/student/Documents/cartographer/test/scan_hrt_36.pcd
+#pcdfilename1: /home/student/Documents/cartographer/test/scan_hrt_voxeledge_36.pcd
+#pcdfilename2: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/submap_test_h_35.pcd
+pcdfilename2: /home/student/Documents/cartographer/test/submap_test_h_xyzi_hiprob_36.pcd
+#pcdfilename2: /home/student/Documents/cartographer/test/submap_test_h_xyzi_36.pcd
+pcdfilename3: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/scan_test_l.pcd
+pcdfilename4: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/submap_test_l_xyzi_3.pcd
 #usehighres, uselowres, twostep all 1|0 
 usehighres: 1
 uselowres: 0
 twostep: 0
 sweepstep: 0.01
 sweeprange: 1.0
-initpose: 1.1836 0.0441474 -0.001009 0.4689161 -0.00061 0.00118 0.57592
-hgrid_res_h: 0.15
+initpose: 1.035516 -0.35161 -0.171637 0.930424 -0.000519047 0.00122094 0.366481
+#1.1241334 -0.221734 -0.161056 0.93581 -0.00061 0.00118 0.367592
+#initpose: 0.12 0.01174 -0.001009 0.99461 -0.00061 0.00118 0.0044357592
+hgrid_res_h: 0.1
 hgrid_res_l: 0.5
 #initpose format xyz qwqxqyqz 
 tst:2,3,4,8

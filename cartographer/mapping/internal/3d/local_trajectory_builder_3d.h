@@ -98,6 +98,11 @@ class LocalTrajectoryBuilder3D {
       const sensor::PointCloud& low_resolution_point_cloud_in_tracking,
       const sensor::PointCloud& high_resolution_point_cloud_in_tracking);
 
+  std::unique_ptr<transform::Rigid3d> ScanMatch_icp(
+      const transform::Rigid3d& pose_prediction,
+      const sensor::PointCloud& high_resolution_point_cloud_in_tracking,
+      int scanmatch_mode);
+
   const mapping::proto::LocalTrajectoryBuilderOptions3D options_;
   mapping::ActiveSubmaps3D active_submaps_;
 
