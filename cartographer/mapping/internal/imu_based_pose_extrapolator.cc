@@ -97,6 +97,11 @@ void ImuBasedPoseExtrapolator::AddPose(const common::Time time,
   TrimImuData();
 }
 
+sensor::ImuData ImuBasedPoseExtrapolator::GetImuData() {
+  CHECK(timed_pose_queue_.empty());
+  return imu_data_.front();
+}
+
 void ImuBasedPoseExtrapolator::AddImuData(const sensor::ImuData& imu_data) {
   CHECK(timed_pose_queue_.empty() ||
         imu_data.time >= timed_pose_queue_.back().time);

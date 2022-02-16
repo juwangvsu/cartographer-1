@@ -196,6 +196,7 @@ void PoseGraph3D::AddTrajectoryIfNeeded(const int trajectory_id) {
 
 void PoseGraph3D::AddImuData(const int trajectory_id,
                              const sensor::ImuData& imu_data) {
+  std::cout<<"PoseGraph3D::AddImuData: "<<imu_data.linear_acceleration<<" time: "<<imu_data.time<<"\n";
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     if (CanAddWorkItemModifying(trajectory_id)) {

@@ -62,6 +62,7 @@ class PoseExtrapolatorInterface {
 
   virtual void AddPose(common::Time time, const transform::Rigid3d& pose) = 0;
   virtual void AddImuData(const sensor::ImuData& imu_data) = 0;
+  virtual sensor::ImuData GetImuData() = 0;
   virtual void AddOdometryData(const sensor::OdometryData& odometry_data) = 0;
   virtual transform::Rigid3d ExtrapolatePose(common::Time time) = 0;
 

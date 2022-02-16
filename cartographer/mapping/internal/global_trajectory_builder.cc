@@ -89,6 +89,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
 
   void AddSensorData(const std::string& sensor_id,
                      const sensor::ImuData& imu_data) override {
+	  std::cout<<"global_trajectory_builder:AddSensorData\n";
     if (local_trajectory_builder_) {
       local_trajectory_builder_->AddImuData(imu_data);
     }

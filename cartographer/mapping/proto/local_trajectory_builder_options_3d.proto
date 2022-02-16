@@ -81,4 +81,5 @@ message LocalTrajectoryBuilderOptions3D {
   float voxeledgesize= 24;
   int32 scanmatch_mode = 25;
   int32 pcl_viewerflag = 26;
+  int32 use_edge_filter = 27;
 }

@@ -61,7 +61,7 @@ int main()
     //pose_transform.rotate() =mat3;
     //pose_transform.block<3,3>(0,0) =mat3;
     std::cout<<"Eigen::Matrix3f: "<< mat3 <<"\n";
-    std::cout<<"Eigen::Vector3d: "<< v3d <<"\n";
+    std::cout<<"Eigen::Vector3d: "<< v3d <<v3d[0]<<"\n";
     std::cout<<"Eigen::Transform: "<< pose_transform.translation() <<"\n";
     std::cout<<"Eigen::Transform: rotation"<< pose_transform.rotation() <<"\n";
     Eigen::Matrix<float, 3, 1> translation0(2,2,2);

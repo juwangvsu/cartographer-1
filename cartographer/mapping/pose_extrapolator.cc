@@ -35,6 +35,7 @@ PoseExtrapolator::PoseExtrapolator(const common::Duration pose_queue_duration,
 std::unique_ptr<PoseExtrapolator> PoseExtrapolator::InitializeWithImu(
     const common::Duration pose_queue_duration,
     const double imu_gravity_time_constant, const sensor::ImuData& imu_data) {
+	std::cout<<"PoseExtrapolator::InitializeWithImu\n";
   auto extrapolator = absl::make_unique<PoseExtrapolator>(
       pose_queue_duration, imu_gravity_time_constant);
   extrapolator->AddImuData(imu_data);
@@ -89,11 +90,20 @@ void PoseExtrapolator::AddPose(const common::Time time,
 }
 
 void PoseExtrapolator::AddImuData(const sensor::ImuData& imu_data) {
+	//std::cout<<"PoseExtrapolator::AddImuData timed_pose_queue_.empty() " << timed_pose_queue_.empty() <<"\n";
   CHECK(timed_pose_queue_.empty() ||
         imu_data.time >= timed_pose_queue_.back().time);
   imu_data_.push_back(imu_data);
   TrimImuData();
 }
+
+sensor::ImuData PoseExtrapolator::GetImuData(){
+	std::cout<<"PoseExtrapolator::GetImuData imu_data_.empty() "<< imu_data_.empty()<<"\n";
+  CHECK(!imu_data_.empty());
+  std::cout<<"GetImuData front time: "<<imu_data_.front().time <<" imu_data_.size(): "<< imu_data_.size()<<"\n";
+  std::cout<<"GetImuData back time: "<<imu_data_.back().time <<"\n";
+  return imu_data_.back();
+  }
 
 void PoseExtrapolator::AddOdometryData(
     const sensor::OdometryData& odometry_data) {

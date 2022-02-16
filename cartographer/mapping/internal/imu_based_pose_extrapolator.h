@@ -49,6 +49,7 @@ class ImuBasedPoseExtrapolator : public PoseExtrapolatorInterface {
 
   void AddPose(common::Time time, const transform::Rigid3d& pose) override;
   void AddImuData(const sensor::ImuData& imu_data) override;
+  sensor::ImuData GetImuData() override;
   void AddOdometryData(const sensor::OdometryData& odometry_data) override;
 
   transform::Rigid3d ExtrapolatePose(common::Time time) override;

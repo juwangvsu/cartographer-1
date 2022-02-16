@@ -72,6 +72,7 @@ proto::LocalTrajectoryBuilderOptions3D CreateLocalTrajectoryBuilderOptions3D(
   options.set_voxeledgesize(parameter_dictionary->GetDouble("voxeledgesize"));
   options.set_scanmatch_mode(parameter_dictionary->GetInt("scanmatch_mode"));
   options.set_pcl_viewerflag(parameter_dictionary->GetInt("pcl_viewerflag"));
+  options.set_use_edge_filter(parameter_dictionary->GetInt("use_edge_filter"));
   return options;
 }
 

@@ -480,10 +480,13 @@ std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch(
 }
 
 void LocalTrajectoryBuilder3D::AddImuData(const sensor::ImuData& imu_data) {
+  //std::cout<<"*******LocalTrajectoryBuilder3D::AddImuData\n";
+  std::cout<<std::flush;
   if (extrapolator_ != nullptr) {
     extrapolator_->AddImuData(imu_data);
     return;
   }
+  std::cout<<"*******LocalTrajectoryBuilder3D::AddImuData init\n";
   std::vector<transform::TimestampedTransform> initial_poses;
   for (const auto& pose_proto : options_.initial_poses()) {
     initial_poses.push_back(transform::FromProto(pose_proto));
@@ -666,6 +669,16 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     const absl::optional<common::Duration>& sensor_duration,
     const transform::Rigid3d& pose_prediction,
     const Eigen::Quaterniond& gravity_alignment) {
+	std::cout<<"******LocalTrajectoryBuilder3D::AddAccumulatedRangeData\n";
+
+  sensor::ImuData imu_front = extrapolator_->GetImuData();
+  if (abs(imu_front.linear_acceleration[0]) >0.5){
+	  LOG(WARNING) << "skip high acceleration condition.";
+	std::cout<<"imu_front.linear_acceleration[0]:"<<imu_front.linear_acceleration<<"  time: "<<imu_front.time <<"\n";
+	  return nullptr;
+  }
+  
+
   if (filtered_range_data_in_tracking.returns.empty()) {
     LOG(WARNING) << "Dropped empty range data.";
     return nullptr;
@@ -710,9 +723,13 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
 	  std::cout<<"mode 2\n";
 	  pose_estimate = ScanMatch(pose_prediction, low_resolution_point_cloud_in_tracking, high_resolution_point_cloud_edge);
   }else if (options_.scanmatch_mode() >=3){
-	  std::cout<<"mode 3\n";
-	  pose_estimate =
-	  ScanMatch_icp(pose_prediction,high_resolution_point_cloud_in_tracking, options_.scanmatch_mode());
+	  std::cout <<"mode 3/4, use_edge_filter(): "<<options_.use_edge_filter()<<"\n";
+	  if (options_.use_edge_filter() ==1)
+	  	pose_estimate =
+	  	ScanMatch_icp(pose_prediction,high_resolution_point_cloud_edge, options_.scanmatch_mode());
+	  else 
+		pose_estimate =
+	  	ScanMatch_icp(pose_prediction,high_resolution_point_cloud_in_tracking, options_.scanmatch_mode());
   }
 
   std::cout<<"scan_point_cloud,hgrid_point_cloud, "<<scan_point_cloud<<" " <<hgrid_point_cloud<<"\n";
