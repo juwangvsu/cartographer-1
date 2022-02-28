@@ -196,7 +196,7 @@ void PoseGraph3D::AddTrajectoryIfNeeded(const int trajectory_id) {
 
 void PoseGraph3D::AddImuData(const int trajectory_id,
                              const sensor::ImuData& imu_data) {
-  std::cout<<"PoseGraph3D::AddImuData: "<<imu_data.linear_acceleration<<" time: "<<imu_data.time<<"\n";
+  std::cout<<"PoseGraph3D::AddImuData: "<<imu_data.linear_acceleration[0]<<" "<<imu_data.linear_acceleration[1]<<" " << imu_data.linear_acceleration[2]<<" time: "<<imu_data.time<<"\n"<< std::flush;
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     if (CanAddWorkItemModifying(trajectory_id)) {
@@ -941,6 +941,7 @@ MapById<NodeId, TrajectoryNode> PoseGraph3D::GetTrajectoryNodes() const {
 
 MapById<NodeId, TrajectoryNodePose> PoseGraph3D::GetTrajectoryNodePoses()
     const {
+	    //std::cout<<"PoseGraph3D::GetTrajectoryNodePoses: "<<data_.trajectory_nodes.size()<<"\n";
   MapById<NodeId, TrajectoryNodePose> node_poses;
   absl::MutexLock locker(&mutex_);
   for (const auto& node_id_data : data_.trajectory_nodes) {

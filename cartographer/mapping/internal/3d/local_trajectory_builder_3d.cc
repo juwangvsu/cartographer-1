@@ -70,6 +70,7 @@ int64_t cartotime_2_ns(common::Time time);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr hgrid_point_cloud;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr scan_point_cloud;
+	pcl::PointCloud<pcl::PointXYZ>::Ptr scan_point_cloud_prev;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr scan_point_cloud_aligned(new pcl::PointCloud<pcl::PointXYZ>);
 
 int icp_main (int argc, char** argv);
@@ -95,18 +96,21 @@ void transform_cloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in, pcl::PointClo
 
 void icp_main2 (transform::Rigid3d * pose_observation_in_submap,transform::Rigid3d initial_ceres_pose,pcl::PointCloud<pcl::PointXYZ>::Ptr scan,pcl::PointCloud<pcl::PointXYZ>::Ptr map, std::string icp_method, int pcl_viewerflag);
 
-// perform icp based match betwen scan and submap
+// perform icp based match betwen scan and submap|scan_prev
+// input: PointCloud, 
+// 	HybridGrid*
+// 	mode
+// output: return void,
+// 	passed Rigid3d*: estimated pose in submap. if matching with prev scan, the result must be combined with the initial pose
 void icp_match(transform::Rigid3d *pose_observation_in_submap,
-      transform::Rigid3d initial_ceres_pose, const sensor::PointCloud & high_resolution_point_cloud_in_tracking, const HybridGrid* hybrid_grid, int scanmatch_mode, int pcl_viewerflag)
+      transform::Rigid3d initial_ceres_pose, const sensor::PointCloud & high_resolution_point_cloud_in_tracking, const HybridGrid* hybrid_grid, int scanmatch_mode, int pcl_viewerflag, int use_relative_pose)
 {
 	std::string icp_method;
 	if (scanmatch_mode==3) icp_method="icp";
 	else if(scanmatch_mode==4) icp_method="ndt";
 
 	//sensor::PointCloud hgrid_point_cloud;
-	//pcl::PointCloud<pcl::PointXYZ>::Ptr hgrid_point_cloud;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr hgrid_point_cloud2;
-	//pcl::PointCloud<pcl::PointXYZ>::Ptr scan_point_cloud;
 
 	//prepare two pcl cloud from hgrid and carto point cloud
 	scan_point_cloud = scan_2_pcd(high_resolution_point_cloud_in_tracking,"/tmp/tst.pcd", false);// savepcdfile false to skip file saving;
@@ -117,15 +121,30 @@ void icp_match(transform::Rigid3d *pose_observation_in_submap,
 
 	std::cout<<"icp_match: hgrid_point_cloud/scan_point_cloud w/h: " << hgrid_point_cloud->width <<" " <<hgrid_point_cloud->height <<" " <<scan_point_cloud->width <<" "<< scan_point_cloud->height<<"\n";
 
-	std::cout<<"icp_match: initial_ceres_pose.translation: "<<initial_ceres_pose.translation()<<"\n";
+	std::cout<<"icp_match: initial_ceres_pose.translation: "<<initial_ceres_pose.translation()[0]<<" " <<initial_ceres_pose.translation()[1]<<" "<<initial_ceres_pose.translation()[2]<<"\n";
 	transform::Rigid3d  tmp_pose_observation_in_submap;// =nullptr;
-	icp_main2(&tmp_pose_observation_in_submap, initial_ceres_pose, scan_point_cloud,hgrid_point_cloud, icp_method, pcl_viewerflag);
+
+	if (use_relative_pose==1)
+	{
+		if (scan_point_cloud_prev==nullptr) scan_point_cloud_prev = scan_point_cloud; //first scan
+		icp_main2(&tmp_pose_observation_in_submap, initial_ceres_pose, scan_point_cloud,scan_point_cloud_prev, icp_method, pcl_viewerflag);
+		scan_point_cloud_prev = scan_point_cloud;
+		//Eigen::Matrix<double, 3, 1> translation_est(translation0.cast<double>());
+		//Eigen::Quaterniond quat_est(quat);
+		//	local_pose().inverse() * pose_prediction;
+		// apply * relative pose to initial pose
+	
+		std::cout<<"icp_match: relative tmp_pose_observation_in_submap.translation: "<<tmp_pose_observation_in_submap.translation()<<"\n";
+		tmp_pose_observation_in_submap= tmp_pose_observation_in_submap * initial_ceres_pose;
+		std::cout<<"icp_match: total tmp_pose_observation_in_submap.translation: "<<tmp_pose_observation_in_submap.translation()<<"\n";
+	}
+	else
+		icp_main2(&tmp_pose_observation_in_submap, initial_ceres_pose, scan_point_cloud,hgrid_point_cloud, icp_method, pcl_viewerflag);
+
 	*pose_observation_in_submap=tmp_pose_observation_in_submap;
-	std::cout<<"icp_match: tmp_pose_observation_in_submap.translation: "<<tmp_pose_observation_in_submap<<"\n";
 	std::cout<<"icp_match: pose_observation_in_submap.translation: "<<*pose_observation_in_submap<<"\n";
-
-
 }
+
 void scanmatch_log(common::Time time, std::ostringstream & ssout, std::ofstream & outfile, const transform::Rigid3d& pose_prediction,  transform::Rigid3d& pose_est)
 {
 	//time is const common::Time current_sensor_time = synchronized_data.time;
@@ -389,11 +408,18 @@ LocalTrajectoryBuilder3D::LocalTrajectoryBuilder3D(
 
 LocalTrajectoryBuilder3D::~LocalTrajectoryBuilder3D() {}
 
-// jwang scanmatch using icp
+// jwang scanmatch using icp or ndt
+// input:
+// 	PointCloud&
+// 	canmatch_mode
+// output:
+//	Rigid3d
 std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch_icp(
     const transform::Rigid3d& pose_prediction,
     const sensor::PointCloud& high_resolution_point_cloud_in_tracking, int scanmatch_mode) {
+
   std::cout<<"*******ScanMatch_icp call\n";
+
   if (active_submaps_.submaps().empty()) {
     return absl::make_unique<transform::Rigid3d>(pose_prediction);
   }
@@ -408,7 +434,7 @@ std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch_icp(
   transform::Rigid3d pose_observation_in_submap;
   icp_match(&pose_observation_in_submap,
       initial_ceres_pose, high_resolution_point_cloud_in_tracking,
-                            &matching_submap->high_resolution_hybrid_grid(), scanmatch_mode, options_.pcl_viewerflag());
+                            &matching_submap->high_resolution_hybrid_grid(), scanmatch_mode, options_.pcl_viewerflag(), options_.use_relative_pose());
   return absl::make_unique<transform::Rigid3d>(matching_submap->local_pose() *
                                                pose_observation_in_submap);
 }
@@ -499,7 +525,9 @@ void LocalTrajectoryBuilder3D::AddImuData(const sensor::ImuData& imu_data) {
   extrapolator_ = mapping::PoseExtrapolatorInterface::CreateWithImuData(
       options_.pose_extrapolator_options(), initial_imu_data, initial_poses);
 }
-
+/***********************
+ * AddRangeData
+ */
 std::unique_ptr<LocalTrajectoryBuilder3D::MatchingResult>
 LocalTrajectoryBuilder3D::AddRangeData(
     const std::string& sensor_id,
@@ -662,6 +690,9 @@ LocalTrajectoryBuilder3D::AddRangeData(
       sensor_duration, extrapolation_result.current_pose,
       extrapolation_result.gravity_from_tracking);
 }
+/***************************
+ * AddAccumulatedRangeData
+ */
 std::unique_ptr<LocalTrajectoryBuilder3D::MatchingResult>
 LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     const common::Time time,
@@ -716,12 +747,14 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
       filtered_range_data_in_tracking.returns, options_.voxeledgesize(),options_.voxeledgeratio());
 
   std::cout<<"scanmatch_mode: "<<options_.scanmatch_mode()<<"\n";
+  // scanmatch_mode: 1 original ceres sm, 3 icp 4 ndt, mode 2 now handle by use_edge_filter option
   if (options_.scanmatch_mode() ==1){
 	  std::cout<<"mode 1\n";
-	  pose_estimate = ScanMatch(pose_prediction, low_resolution_point_cloud_in_tracking, high_resolution_point_cloud_in_tracking);
-  } else if (options_.scanmatch_mode() ==2){
-	  std::cout<<"mode 2\n";
-	  pose_estimate = ScanMatch(pose_prediction, low_resolution_point_cloud_in_tracking, high_resolution_point_cloud_edge);
+	  if (options_.use_edge_filter() ==0)
+	  
+		  pose_estimate = ScanMatch(pose_prediction, low_resolution_point_cloud_in_tracking, high_resolution_point_cloud_in_tracking);
+	  else 
+		  pose_estimate = ScanMatch(pose_prediction, low_resolution_point_cloud_in_tracking, high_resolution_point_cloud_edge);
   }else if (options_.scanmatch_mode() >=3){
 	  std::cout <<"mode 3/4, use_edge_filter(): "<<options_.use_edge_filter()<<"\n";
 	  if (options_.use_edge_filter() ==1)
@@ -745,6 +778,8 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     return nullptr;
   }
   std::string pcd_hrt="/home/student/Documents/cartographer/test/scan_hrt_"+std::to_string(scan_seq)+".pcd";
+  std::string pcd_hrt_edge="/home/student/Documents/cartographer/test/scan_hrt_edge_"+std::to_string(scan_seq)+".pcd";
+  scan_2_pcd(high_resolution_point_cloud_edge,pcd_hrt_edge);
   scan_2_pcd(high_resolution_point_cloud_in_tracking,pcd_hrt);
   std::string pcd_hrtve="/home/student/Documents/cartographer/test/scan_hrt_voxeledge_"+std::to_string(scan_seq)+".pcd";
   scan_2_pcd(high_resolution_point_cloud_edge,pcd_hrtve);
@@ -857,7 +892,6 @@ LocalTrajectoryBuilder3D::InsertIntoSubmap(
               filtered_range_data_in_tracking.returns,
               transform::Rigid3f::Rotation(gravity_alignment.cast<float>())),
           options_.rotational_histogram_size());
-
 
   //jwang debug start
   scan_2_pcd(filtered_range_data_in_local.returns, "range_data.pcd");

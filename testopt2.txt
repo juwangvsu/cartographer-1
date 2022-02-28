@@ -7,12 +7,21 @@ pcdfilename: /home/student/Documents/cartographer/test/turtlebot3_pcd/mapdata_5.
 # pcdfilename1/3 for scan pcd, 2/4 for hybridgrid
 # hgridxyzi 1 for <pcl::PointXYZI> type pcd, 0 for <pcl::PointXYZ>, if 1 corresponding pcd file must be xyzi pcd file
 hgridxyzi: 0
-pcdfilename1: /home/student/Documents/cartographer/test/scan_hrt_36.pcd
+
+
+pcdfilename1: /home/student/Documents/cartographer/test/scan_hrt_29.pcd
+#pcdfilename1: /home/student/Documents/cartographer/test/scan_hrt_36.pcd
 #pcdfilename1: /home/student/Documents/cartographer/test/scan_hrt_voxeledge_36.pcd
+
+pcdfilename2: /home/student/Documents/cartographer/test/submap_test_h_28.pcd
 #pcdfilename2: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/submap_test_h_35.pcd
-pcdfilename2: /home/student/Documents/cartographer/test/submap_test_h_xyzi_hiprob_36.pcd
+#pcdfilename2: /home/student/Documents/cartographer/test/submap_test_h_xyzi_hiprob_36.pcd
 #pcdfilename2: /home/student/Documents/cartographer/test/submap_test_h_xyzi_36.pcd
+
+
 pcdfilename3: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/scan_test_l.pcd
+
+
 pcdfilename4: /home/student/Documents/cartographer/test_ceres_pcd/1-25-22/submap_test_l_xyzi_3.pcd
 #usehighres, uselowres, twostep all 1|0 
 usehighres: 1

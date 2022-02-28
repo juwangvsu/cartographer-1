@@ -82,4 +82,5 @@ message LocalTrajectoryBuilderOptions3D {
   int32 scanmatch_mode = 25;
   int32 pcl_viewerflag = 26;
   int32 use_edge_filter = 27;
+  int32 use_relative_pose = 28;
 }

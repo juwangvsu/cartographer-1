@@ -391,7 +391,7 @@ void icp_main2 (transform::Rigid3d * pose_observation_in_submap, transform::Rigi
   //translation = trans.block<3, 1>(0, 3);
   *pose_observation_in_submap = transform::Rigid3d(translation_est, quat_est);
 //  std::cout<<"icp_main2 pose_observation_in_submap->trans "<<pose_observation_in_submap->translation() << " quat " << pose_observation_in_submap<<std::endl;
-  std::cout<<"icp_main2 pose_observation_in_submap->trans "<<pose_observation_in_submap->translation() << " quat " << pose_observation_in_submap->rotation().x()<<std::endl;
+  std::cout<<"icp_main2 pose_observation_in_submap->trans "<<pose_observation_in_submap->translation()[0] << " quat " << pose_observation_in_submap->rotation().x()<<std::endl;
   if (pcl_viewerflag==1) show_pcl_2cloud(scan, map, "icp_main scan  vs map no xform 1");
   //show_pcl_2cloud(scan, map, "icp_main scan  vs map no xform 2");
 }
