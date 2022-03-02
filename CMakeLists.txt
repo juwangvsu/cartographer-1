@@ -211,6 +211,11 @@ google_binary(cartographer_pbstream
   cartographer/io/pbstream_main.cc
 )
 
+google_binary(cartographer_wangtest
+  SRCS
+  cartographer/io/wangtest_main.cc
+)
+
 google_binary(cartographer_print_configuration
   SRCS
   cartographer/common/print_configuration_main.cc

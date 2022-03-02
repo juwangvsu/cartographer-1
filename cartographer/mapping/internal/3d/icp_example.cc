@@ -37,15 +37,18 @@
 #include "cartographer/transform/timestamped_transform.h"
 #include "cartographer/mapping/internal/3d/local_trajectory_builder_3d.h"
 #include "cartographer/sensor/rangefinder_point.h"
+#include "cartographer/mapping/internal/3d/icp_example.h"
 //#include "clpp/parser.hpp"
 //#include "myparam.h"
 namespace cartographer {
 namespace mapping {
 
   void wait_pcl();
+//Eigen::Matrix4f load2yaml();
   void init_pcl_viewer(std::string title);
  void show_pcl_2cloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2, std::string title);
   void init_pcl_viewer(std::string title);
+
 pcl::visualization::PCLVisualizer::Ptr viewer_final;
 
 //extern Myparam myparam;

@@ -455,6 +455,7 @@ void sweeptest(const transform::Rigid3d& initial_pose, sensor::PointCloud &point
 	    //read scan data, high and low res
 	    cloud1 = readPCD_file<pcl::PointXYZ>(pcdf1);
 	    PCDCloud_2_PointCloud(cloud1,point_cloud_4_);
+	    	//convert to point_cloud_4_  carto's pointcloud class
 	    cloud4 = readPCD_file<pcl::PointXYZ>(pcdf3);
 	    PCDCloud_2_PointCloud(cloud4,point_cloud_5_);
 
@@ -499,6 +500,7 @@ void sweeptest(const transform::Rigid3d& initial_pose, sensor::PointCloud &point
 	    hybrid_grid_4_ = new HybridGrid(hgrid_res_h);
 	    hybrid_grid_5_ = new HybridGrid(hgrid_res_l);
 
+	    //convert pcl cloud to hbrid, there are two version of PCDCloud_2_HybridGrid
 	    if (hgridxyzi==0){
 	    	PCDCloud_2_HybridGrid(cloud2,*hybrid_grid_4_,intensity_hybrid_grid_4_);	    
 	    	PCDCloud_2_HybridGrid(cloud5,*hybrid_grid_5_,intensity_hybrid_grid_5_);	    

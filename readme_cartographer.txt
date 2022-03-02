@@ -72,5 +72,8 @@ ninja
 CTEST_OUTPUT_ON_FAILURE=1 ninja test
         this run all tests
 
+add executable:
+	CMakeLists.txt: google_binary(cartographer_wangtest...
+	
 #sudo ninja install
 
