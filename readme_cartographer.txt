@@ -59,6 +59,7 @@ using ninja tool
         catkin_make_isolated --install --use-ninja
         this will download both cartographer and cartographer_ros
         and build cartographer_ros
+	#6/2/22 "catkin build" fail to build cartographer_ros
 
 # To Build  Cartographer seperately (to access test)
 cd /media/student/data6/catkin_ws/src/cartographer
@@ -77,3 +78,6 @@ add executable:
 	
 #sudo ninja install
 
+to use carto build here (carto 2.0.0):
+        export ROS_PACKAGE_PATH=
+        source /media/student/data6/catkin_ws/devel_isolated/setup.bash
