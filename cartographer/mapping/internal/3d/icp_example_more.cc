@@ -206,7 +206,7 @@ int icp_main3(int argc, char ** argv)
 
   show_pcl_2cloud(filtered_cloud_t,filtered_cloud, "original clouds");
   show_pcl_2cloud(target_cloud,output_cloud, "after alignment");
-  show_pcl_2cloud(target_cloud,output_cloud_gt, "after gt alignment");
+  show_pcl_2cloud(target_cloud,output_cloud_gt, "gt alignment");
   return 0;
 }
 

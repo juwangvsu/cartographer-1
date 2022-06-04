@@ -1,4 +1,17 @@
 /*
+ *
+ * Ju Wang
+ * 3/2/2022 
+ * input: testcfg.yaml
+ * 	pcd files, init pose, gt pose
+this is a replic of icp_example.cc but build in cartograph space
+run a scan match methods on testing pcd files.
+        mode: icp, ceres, ndt
+build:
+        cartograph build (standalone or via ros catkin)
+run:
+        catkin_ws/src/cartographer/build$ ./cartographer_wangtest
+*
  * Copyright 2018 The Cartographer Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -134,6 +147,7 @@ int main(int argc, char** argv) {
    /*
   cartographer::mapping::icp_main2(&tmp_pose_observation_in_submap, initial_ceres_pose, scan_point_cloud,scan_point_cloud_prev, icp_method, pcl_viewerflag);
 
+  internal/3d/icp_example_more.cc
 */
    cartographer::mapping::icp_main3(argc, argv);
   FLAGS_logtostderr = true;

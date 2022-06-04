@@ -339,7 +339,6 @@ void icp_main2 (transform::Rigid3d * pose_observation_in_submap, transform::Rigi
     icp = ndt;
   }
   //setting=1 use param setting from hdl, else use the one from this example
-  std::cout<<"using stock icp verison\n";
   icp->setTransformationEpsilon(0.01);
       icp->setMaximumIterations(64);
       //icp.setResolution(0.5);
@@ -351,7 +350,7 @@ void icp_main2 (transform::Rigid3d * pose_observation_in_submap, transform::Rigi
   icp->setInputTarget (map);
   //icp.setInputTarget (target_cloud);
   
-  	std::cout<<"initial_ceres_pose.translation: "<<initial_ceres_pose.translation()<<"\n";
+//  	std::cout<<"initial_ceres_pose.translation: "<<initial_ceres_pose.translation()<<"\n";
 	Eigen::Matrix4f init_guess;
 	float yawguess=0, xguess=0;
 	int icpinitsrc=1;

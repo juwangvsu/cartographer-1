@@ -111,12 +111,15 @@ void icp_match(transform::Rigid3d *pose_observation_in_submap,
 
 	//sensor::PointCloud hgrid_point_cloud;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr hgrid_point_cloud2;
+//	std::cout<<"icp_match: scan_point_cloud, "<< scan_point_cloud<<" "<<std::flush;
 
 	//prepare two pcl cloud from hgrid and carto point cloud
 	scan_point_cloud = scan_2_pcd(high_resolution_point_cloud_in_tracking,"/tmp/tst.pcd", false);// savepcdfile false to skip file saving;
-	std::cout<<"icp_match: scan_point_cloud, "<< scan_point_cloud<<" ";
-	std::cout<<"icp_match: scan_point_cloud.width "<< scan_point_cloud->width<<"\n";
+	std::cout<<"icp_match:  scan_point_cloud, "<< scan_point_cloud<<" "<<std::flush;
+	if (scan_point_cloud!= nullptr)
+		std::cout<<"icp_match: scan_point_cloud.width "<< scan_point_cloud->width<<"\n"<<std::flush;
 	hgrid_point_cloud = hybridgrid_2_pointcloud(hybrid_grid, &hgrid_point_cloud2,  0.5 );//hgrid_pcd_probthresh=0.5
+	if (hgrid_point_cloud!= nullptr)
 	std::cout<<"icp_match: hgrid_point_cloud, "<< hgrid_point_cloud<<" " << hgrid_point_cloud2 << "\n";
 
 	std::cout<<"icp_match: hgrid_point_cloud/scan_point_cloud w/h: " << hgrid_point_cloud->width <<" " <<hgrid_point_cloud->height <<" " <<scan_point_cloud->width <<" "<< scan_point_cloud->height<<"\n";
@@ -170,6 +173,7 @@ int64_t cartotime_2_ns(common::Time time)
 void submap_2_pcd(std::shared_ptr<const mapping::Submap3D> submap, float hgrid_pcd_probthresh)
 {
 	std::string pcdfn1, pcdfn2, pcdfn3, pcdfn2_xyzi, pcdfn3_xyzi, pcdfn2_pref, pcdfn3_pref;
+//	std::cout<<"\n\nsubmap_2_pcd: "<<std::flush;
 	if (savepcdflag==0) return;
 
 	std::cout<<"\n\nsubmap_2_pcd: " << submap->local_pose();
@@ -220,13 +224,12 @@ void scan2_2_pcd(const TimedPointCloud t_cloud,std::string pcdfn)
 }
 /*
  * save a scan (in sensor::PointCloud format to pcd format
- * return pcl cloud
+ * always return pcl cloud 
  * normally save to pcd file. if only want the pcl cloud in return, set savepcdfile=false at call
  */
 pcl::PointCloud<pcl::PointXYZ>::Ptr scan_2_pcd(const sensor::PointCloud h_cloud,std::string pcdfn, bool savepcdfile /*=true*/) // default value given at proto declare
 {
-	if (savepcdflag==0) return nullptr;
-	std::cout<<"\nscan_2_pcd #points: "<<h_cloud.size()<<" " <<pcdfn<<"\n";
+	std::cout<<"scan_2_pcd #points: "<<h_cloud.size()<<" " <<pcdfn<<"\n"<<std::flush;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr scan_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	scan_cloud->height   = 1;
 	scan_cloud->width   = h_cloud.size();
@@ -242,7 +245,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr scan_2_pcd(const sensor::PointCloud h_cloud,
 		(*scan_cloud)[i].z = point.position[2];
 	}
   
-	if (savepcdfile)
+	if (savepcdfile && savepcdflag==1)
 		pcl::io::savePCDFile<pcl::PointXYZ> (pcdfn, *scan_cloud, false);
 	return scan_cloud;
 	//	copied_point_cloud.points()
@@ -308,11 +311,16 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr hybridgrid_2_pointcloud(const HybridGrid * h
  * */
 void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn,  std::string pcdfn_pref, int seqno, float hgrid_pcd_probthresh=0.1)
 {
+	std::vector<std::string> fntokens;
+
+	boost::split(fntokens, pcdfn, boost::is_any_of("/"));
+	//std::cout<<tokens[0] << " " << fntokens[fntokens.size()-1];
+	//
 	std::string pcdfn_xyzi=pcdfn_pref+"xyzi_"+std::to_string(seqno)+".pcd";
 	std::string pcdfn_xyzi_hiprob=pcdfn_pref+"xyzi_hiprob_"+std::to_string(seqno)+".pcd";
 	std::string pcdfn_xyzi_lowprob=pcdfn_pref+"xyzi_lowprob_"+std::to_string(seqno)+".pcd";
 	if (savepcdflag==0) return;
-	std::cout<<"\n***** hybridgrid_2_pcd***************\n"<<"hgrid_pcd_probthresh: "<< hgrid_pcd_probthresh<<"\n";
+	std::cout<<"\n***** hybridgrid_2_pcd "<<"probthresh: "<< hgrid_pcd_probthresh<<"\n\t";
 	hgrid_info(hybrid_grid,false);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr submap_cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -352,7 +360,7 @@ void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn,  std::s
   submap_cloud->points.resize (ii * submap_cloud->height);
   submap_cloud_xyzi->width    = ii;
   submap_cloud_xyzi->points.resize (ii * submap_cloud_xyzi->height);
-  std::cout<<"\nsubmap num points: "<< ii * submap_cloud->height<<" " << pcdfn<<"\n";
+  std::cout<<"\tsubmap # points: "<< ii * submap_cloud->height<<" " << fntokens[fntokens.size()-1] <<"\n";
   for (int iii = 0; iii<ii; iii++)
   {
     (*submap_cloud)[iii].x = cell_vec[iii][0];
@@ -368,7 +376,7 @@ void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn,  std::s
   pcl::io::savePCDFile<pcl::PointXYZ> (pcdfn, *submap_cloud, false);
   pcl::io::savePCDFile<pcl::PointXYZI> (pcdfn_xyzi_hiprob, *submap_cloud_xyzi, false);
 
-  //save all points to pcd with intensity
+  //save all points + intensity to pcd, intensity = probability
   //
   submap_cloud_xyzi->width    = ii+misscnt;
   submap_cloud_xyzi->points.resize ((ii+misscnt) * submap_cloud_xyzi->height);
@@ -385,7 +393,7 @@ void hybridgrid_2_pcd(const HybridGrid * hybrid_grid, std::string pcdfn,  std::s
     (*submap_cloud_xyzi_lowprob)[iii].z = cell_vec_lowprob[iii][2];
     (*submap_cloud_xyzi_lowprob)[iii].intensity = cell_vec_lowprob[iii][3];
   }
-  std::cout<<"\nsubmap xyzi Num points: "<< (ii+misscnt) * submap_cloud->height<<" " << pcdfn_xyzi<<"\n";
+//  std::cout<<"\nsubmap xyzi Num points: "<< (ii+misscnt) * submap_cloud->height<<" " << pcdfn_xyzi<<"\n";
   pcl::io::savePCDFile<pcl::PointXYZI> (pcdfn_xyzi, *submap_cloud_xyzi, false);
   pcl::io::savePCDFile<pcl::PointXYZI> (pcdfn_xyzi_lowprob, *submap_cloud_xyzi_lowprob, false);
 }
@@ -404,6 +412,7 @@ LocalTrajectoryBuilder3D::LocalTrajectoryBuilder3D(
       range_data_collator_(expected_range_sensor_ids) {
       outfile.open("/home/student//Documents/cartographer/test/scanmatch_log.txt");
       ssout<<"time, scanfn, init x, y, z, qw, qx, qy, qz\n";
+      savepcdflag=options_.savepcdflag(); //save to global variable in this workspace
       }
 
 LocalTrajectoryBuilder3D::~LocalTrajectoryBuilder3D() {}
@@ -428,7 +437,7 @@ std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch_icp(
       active_submaps_.submaps().front();
   transform::Rigid3d initial_ceres_pose =
       matching_submap->local_pose().inverse() * pose_prediction;
-  std::cout<<"***************** LocalTrajectoryBuilder3D::ScanMatch_icp \n";
+  //std::cout<<"***************** LocalTrajectoryBuilder3D::ScanMatch_icp \n";
   submap_2_pcd(matching_submap, options_.hgrid_pcd_probthresh());
 
   transform::Rigid3d pose_observation_in_submap;

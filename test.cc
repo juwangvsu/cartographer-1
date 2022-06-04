@@ -25,6 +25,14 @@ struct tt{
 };
 int main()
 {
+	std::string message("/home/root/xyz.csv");
+	vector<string> tokens;
+boost::split(tokens, message, boost::is_any_of("/"));
+	std::cout<<tokens[0] << " " << tokens[tokens.size()-1];
+	for(auto beg=tokens.begin(); beg!=tokens.end();++beg){
+		std::cout << *beg <<" " ;
+}
+
 	Eigen::Quaterniond quat0(1, 2,0,0);
 	std::cout<<"quat0: " <<quat0.w()<<" "<<quat0.x()<<" "<<quat0.y()<<" "<<quat0.z()<<"\n";
 	Eigen::Matrix3d mat0 = quat0.toRotationMatrix();

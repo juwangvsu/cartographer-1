@@ -74,6 +74,7 @@ proto::LocalTrajectoryBuilderOptions3D CreateLocalTrajectoryBuilderOptions3D(
   options.set_pcl_viewerflag(parameter_dictionary->GetInt("pcl_viewerflag"));
   options.set_use_edge_filter(parameter_dictionary->GetInt("use_edge_filter"));
   options.set_use_relative_pose(parameter_dictionary->GetInt("use_relative_pose"));
+  options.set_savepcdflag(parameter_dictionary->GetInt("savepcdflag"));
   return options;
 }
 
